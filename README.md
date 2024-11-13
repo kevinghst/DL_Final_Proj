@@ -5,6 +5,34 @@
 - Naman
 - Karthik
 
+## Greene Environment commands
+- For running a python command on overlay
+```
+singularity exec --overlay /scratch/gm3314/deep_learning_f24/environment/overlay-15GB-500K.ext3:ro /scratch/work
+/public/singularity/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif /bin/bash -c 'source /ext3/env.sh; python -c "import torch; print(torch.__
+file__); print(torch.__version__)"'
+```
+
+- Accessing singularity env with read write access (for installing packages)
+```
+singularity exec --overlay /scratch/gm3314/deep_learning_f24/environment/overlay-15GB-500K.ext3:rw /s
+cratch/work/public/singularity/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif /bin/bash
+```
+- Steps to run via ssh burst
+```
+ssh greene
+ssh burst
+
+srun --account=csci_ga_2572-2024fa --partition=n1s8-v100-1 --gres=gpu:v100:1 --time=01:00:00 --pty /bin/bash
+
+singularity exec --bind /scratch --nv --overlay /scratch/gm3314/environments/overlay-25GB-500K.ext3:rw /scratch/gm3314/environments/ubuntu-20.04.3.sif /bin/bash -c "
+source /ext3/env.sh
+conda activate my_env
+"
+
+```
+
+
 ## Overview
 
 In this project, you will train a JEPA world model on a set of pre-collected trajectories from a toy environment involving an agent in two rooms.
