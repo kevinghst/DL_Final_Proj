@@ -87,27 +87,47 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
 
-    num_epochs = 100
+    print('step 1')
+    num_epochs = 25
     learning_rate = 1e-4
     batch_size = 64
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f'device {device}')
+
     model = LowEnergyOneModel(device=device).to(device)
+    train_loader = load_training_data("cpu")
+
+    train_low_energy_one_model(
+        model=model,
+        train_loader=train_loader,
+        num_epochs=50,
+        learning_rate=1e-4,
+        device=device,
+    )
+
+    '''
+    model = LowEnergyOneModel(device=device).to(device)
+    print('model created')
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    print('optimizer created')
 
     train_loader = load_training_data(device)
+    print('loader ready')
     
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
+        print(f'Epoch {epoch+1}')
     
-        for samples in train_loader:
-            states = samples.states.to(device)  # [B, T, Ch, H, W]
-            actions = samples.actions.to(device)  # [B, T-1, action_dim]
+        for batch in train_loader:
+            print('X', end="")
+            states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
+            actions = batch.actions.to(device)  # [B, T-1, action_dim]
+
+            print('O', end="")
     
-            # Positive energy (true state-action pairs)
             positive_energy = model(states, actions)
-    
             shuffled_actions = actions[torch.randperm(actions.size(0))] 
             negative_energy = model(states, shuffled_actions)
     
@@ -120,7 +140,12 @@ if __name__ == "__main__":
             epoch_loss += loss.item()
     
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss / len(train_loader)}")
-    
+        '''
+
+    probe_train_ds, probe_val_ds = load_data(device)
+    model = load_model()
+    evaluate_model(device, model, probe_train_ds, probe_val_ds)
+
     
     '''
         B, T, Ch, H, W = 8, 10, 3, 64, 64

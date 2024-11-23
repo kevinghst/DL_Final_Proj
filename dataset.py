@@ -17,8 +17,20 @@ class WallDataset:
         device="cuda",
     ):
         self.device = device
-        self.states = np.load(f"{data_path}/states.npy", mmap_mode="r")
+        #self.states = np.load(f"{data_path}/states.npy", mmap_mode="r")
+        new_file = "/scratch/ph1499/part_states.npy"
+        self.states = np.load(f"{new_file}", mmap_mode="r")
         self.actions = np.load(f"{data_path}/actions.npy")
+        print(f'length = {len(self.states)}')
+        print(f'size = {self.states.size}')
+
+        '''
+        partial = self.states[1000:2000]
+        new_file = "/scratch/ph1499/part_states.npy"
+        np.save(f"{new_file}", partial)
+        print('partials saved')
+        '''
+
 
         if probing:
             self.locations = np.load(f"{data_path}/locations.npy")
