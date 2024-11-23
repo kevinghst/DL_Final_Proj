@@ -1,5 +1,6 @@
 from dataset import create_wall_dataloader
 from evaluator import ProbingEvaluator
+from train import train_low_energy_model
 import torch
 from models import MockModel
 from models import LowEnergyOneModel
@@ -98,10 +99,10 @@ if __name__ == "__main__":
     model = LowEnergyOneModel(device=device).to(device)
     train_loader = load_training_data("cpu")
 
-    train_low_energy_one_model(
+    train_low_energy_model(
         model=model,
         train_loader=train_loader,
-        num_epochs=50,
+        num_epochs=10,
         learning_rate=1e-4,
         device=device,
     )
@@ -143,7 +144,7 @@ if __name__ == "__main__":
         '''
 
     probe_train_ds, probe_val_ds = load_data(device)
-    model = load_model()
+    #model = load_model()
     evaluate_model(device, model, probe_train_ds, probe_val_ds)
 
     
