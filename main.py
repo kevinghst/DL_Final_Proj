@@ -78,86 +78,24 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
     for probe_attr, loss in avg_losses.items():
         print(f"{probe_attr} loss: {loss}")
 
-'''
-if __name__ == "__main__":
-    device = get_device()
-    probe_train_ds, probe_val_ds = load_data(device)
-    model = load_model()
-    evaluate_model(device, model, probe_train_ds, probe_val_ds)
-'''
-
 if __name__ == "__main__":
 
-    print('step 1')
     num_epochs = 25
     learning_rate = 1e-4
-    batch_size = 64
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f'device {device}')
-
+    device = get_device()
     model = LowEnergyOneModel(device=device).to(device)
-    train_loader = load_training_data("cpu")
+    train_loader = load_training_data("cpu") # cpu first then gpu?
 
     train_low_energy_model(
         model=model,
         train_loader=train_loader,
-        num_epochs=10,
-        learning_rate=1e-4,
+        num_epochs=num_epochs,
+        learning_rate=learning_rate,
         device=device,
     )
 
-    '''
-    model = LowEnergyOneModel(device=device).to(device)
-    print('model created')
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    print('optimizer created')
-
-    train_loader = load_training_data(device)
-    print('loader ready')
-    
-    for epoch in range(num_epochs):
-        model.train()
-        epoch_loss = 0.0
-        print(f'Epoch {epoch+1}')
-    
-        for batch in train_loader:
-            print('X', end="")
-            states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
-            actions = batch.actions.to(device)  # [B, T-1, action_dim]
-
-            print('O', end="")
-    
-            positive_energy = model(states, actions)
-            shuffled_actions = actions[torch.randperm(actions.size(0))] 
-            negative_energy = model(states, shuffled_actions)
-    
-            loss = model.loss(positive_energy, negative_energy)
-    
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-    
-            epoch_loss += loss.item()
-    
-        print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss / len(train_loader)}")
-        '''
-
     probe_train_ds, probe_val_ds = load_data(device)
-    #model = load_model()
+    #model = load_model() # for empty model
     evaluate_model(device, model, probe_train_ds, probe_val_ds)
 
-    
-    '''
-        B, T, Ch, H, W = 8, 10, 3, 64, 64
-        action_dim = 2
-    
-        model = LowEnergyOneModel(device="cuda").to("cuda")
-        states = torch.rand(B, T, Ch, H, W).to("cuda")
-        actions = torch.rand(B, T - 1, action_dim).to("cuda")
-    
-        positive_energy = model(states, actions)
-        negative_energy = model(states, torch.roll(actions, shifts=1, dims=1)) 
-    
-        loss = model.loss(positive_energy, negative_energy)
-        '''
