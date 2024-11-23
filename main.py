@@ -15,10 +15,11 @@ def get_device():
     return device
 
 def load_training_data(device):
-    data_path = "/scratch/DL24FA"
+    #data_path = "/scratch/DL24FA"
+    data_path = "/scratch/ph1499"
 
     train_ds = create_wall_dataloader(
-        data_path=f"{data_path}/train",
+        data_path=f"{data_path}/partial",
         probing=False,
         device=device,
         train=True,
