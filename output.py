@@ -73,22 +73,17 @@ def plot_trajectory(position_channel, walls_channel):
     fig.tight_layout()
     fig.savefig('traject.png')
 
+
 def plot_full_trajectory(position_channel, walls_channel):
     steps, height, width = position_channel.shape
     walls = walls_channel[0]
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.imshow(walls, cmap="gray", alpha=0.6, label="Walls") 
+    ax.imshow(walls, cmap="gray", alpha=1.0)  # Static walls
     for t in range(steps):
-        im_pos = ax.imshow(
-            position_channel[t],
-            cmap="viridis",
-            alpha=0.6,
-            label=f"Timestep {t}",
-        )
+        ax.imshow(position_channel[t], cmap="viridis", alpha=0.6)
     ax.set_title("Agent Trajectory Over Static Walls")
-    cbar = fig.colorbar(im_pos, ax=ax)
-    cbar.set_label("Agent Intensity Over Time")
     ax.axis("off")
     fig.tight_layout()
     fig.savefig("traject.png")
     plt.close(fig)
+
