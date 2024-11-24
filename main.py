@@ -12,14 +12,15 @@ def get_device():
     """Check for GPU availability."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
+    print(torch.cuda.memory_summary(abbreviated=True))
     return device
 
 def load_training_data(device):
-    #data_path = "/scratch/DL24FA"
-    data_path = "/scratch/ph1499"
+    data_path = "/scratch/DL24FA/train"
+    #data_path = "/scratch/ph1499/partial"
 
     train_ds = create_wall_dataloader(
-        data_path=f"{data_path}/partial",
+        data_path=f"{data_path}",
         probing=False,
         device=device,
         train=True,
