@@ -35,14 +35,14 @@ def plot_image(position, walls):
         fig = plt.figure(figsize=(12, 6))
 
         a = fig.add_subplot(1, 2, 1)
-        a.imshow(position, cmap="viridis")
-        #a.title("Position - Timestep 0")
-        #a.colorbar()
+        im_a = a.imshow(position, cmap="viridis")
+        a.set_title("Position - Timestep 0")
+        fig.colorbar(im_a, ax=a)
 
         b = fig.add_subplot(1, 2, 2)
-        b.imshow(walls, cmap="gray")
-        #b.title("Walls/Doors - Timestep 0")
-        #b.colorbar()
+        im_b = b.imshow(walls, cmap="gray")
+        b.set_title("Walls/Doors - Timestep 0")
+        fig.colorbar(im_b, ax=b)
 
         fig.tight_layout()
         fig.savefig('traject.png')
