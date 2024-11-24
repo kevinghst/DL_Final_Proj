@@ -75,27 +75,20 @@ def plot_trajectory(position_channel, walls_channel):
 
 def plot_full_trajectory(position_channel, walls_channel):
     steps, height, width = position_channel.shape
-
     walls = walls_channel[0]
-
     fig, ax = plt.subplots(figsize=(8, 8))
-
-    ax.imshow(walls, cmap="gray", alpha=0.6, label="Walls")  # Walls as background
-
-    cmap = plt.cm.get_cmap("viridis", steps)  # Colormap with one color per step
-
+    ax.imshow(walls, cmap="gray", alpha=0.6, label="Walls") 
     for t in range(steps):
-        positions = np.argwhere(position_channel[t] > 0)  # Get positions of the agent
-        for y, x in positions:
-            ax.scatter(x, y, color=cmap(t), label=f"Timestep {t}" if t == 0 else "", s=20)
-
+        im_pos = ax.imshow(
+            position_channel[t],
+            cmap="viridis",
+            alpha=0.6,
+            label=f"Timestep {t}",
+        )
     ax.set_title("Agent Trajectory Over Static Walls")
+    cbar = fig.colorbar(im_pos, ax=ax)
+    cbar.set_label("Agent Intensity Over Time")
     ax.axis("off")
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=steps - 1))
-    sm.set_array([])
-    cbar = fig.colorbar(sm, ax=ax)
-    cbar.set_label("Timestep")
     fig.tight_layout()
     fig.savefig("traject.png")
     plt.close(fig)
-
