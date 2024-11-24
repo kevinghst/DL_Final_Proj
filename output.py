@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -14,7 +15,8 @@ def print_sample(sample):
         print_image(position_channel[t], walls_channel[t])
 
     #plot_image(position_channel[1], walls_channel[1])
-    plot_trajectory(position_channel, walls_channel)
+    #plot_trajectory(position_channel, walls_channel)
+    plot_full_trajectory(position_channel, walls_channel)
 
 def print_image(position, walls):
 
@@ -49,15 +51,13 @@ def plot_image(position, walls):
         fig.savefig('traject.png')
 
 def plot_trajectory(position_channel, walls_channel):
-    """
-    Plot the entire trajectory of position and walls.
-    """
+
     steps = position_channel.shape[0]
 
     fig, axes = plt.subplots(steps, 2, figsize=(12, 6 * steps))
 
     if steps == 1:
-        axes = axes[np.newaxis, :]  # Make it 2D for single timestep
+        axes = axes[np.newaxis, :]
 
     for t in range(steps):
         ax_pos = axes[t, 0]
@@ -72,4 +72,23 @@ def plot_trajectory(position_channel, walls_channel):
 
     fig.tight_layout()
     fig.savefig('traject.png')
+
+def plot_full_trajectory(position_channel, walls_channel):
+
+    steps, height, width = position_channel.shape
+    walls = walls_channel[0] 
+    trajectory = np.zeros((height, width))
+    for t in range(steps):
+        trajectory += (position_channel[t] > 0) * (t + 1) 
+    trajectory = np.clip(trajectory, 0, steps) 
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(walls, cmap="gray", alpha=0.6, label="Walls") 
+    traj_plot = ax.imshow(trajectory, cmap="viridis", alpha=0.8, label="Trajectory")
+    cbar = fig.colorbar(traj_plot, ax=ax)
+    cbar.set_label("Timestep")
+    ax.set_title("Agent Trajectory Over Static Walls")
+    ax.axis("off")
+    fig.tight_layout()
+    fig.savefig('traject.png')
+    plt.close(fig)
 
