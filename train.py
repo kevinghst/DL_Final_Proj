@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
+from output import print_sample
 
 def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda"):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -19,8 +19,7 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
         for batch in train_loader:
             states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
             actions = batch.actions.to(device, non_blocking=True)  # [B, T-1, 2]
-            sample = states[60]
-            break
+            print_sample(states[60])
 
             predictions = model(states, actions)  # [B, T, D]
 
@@ -46,36 +45,6 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
 
             epoch_loss += loss.item()
 
-        print(sample)
-        position_channel = sample[:, 0, :, :]  # [T, H, W] for position
-        walls_channel = sample[:, 1, :, :]     # [T, H, W] for walls/doors
-        position_channel = position_channel.cpu().numpy()
-        walls_channel = walls_channel.cpu().numpy()
-
-        def normalize(data):
-            return (data - data.min()) / (data.max() - data.min()) if data.max() > 0 else data
-
-        position_channel = normalize(position_channel)
-        walls_channel = normalize(walls_channel)
-
-        print(position_channel)
-        print(walls_channel)
-
-        plt.figure(figsize=(12, 6))
-
-        plt.subplot(1, 2, 1)
-        plt.imshow(position_channel[0], cmap="viridis")
-        plt.title("Position - Timestep 0")
-        plt.colorbar()
-
-        plt.subplot(1, 2, 2)
-        plt.imshow(walls_channel[0], cmap="gray")
-        plt.title("Walls/Doors - Timestep 0")
-        plt.colorbar()
-
-        plt.tight_layout()
-        plt.show()
-        break
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss / len(train_loader):.4f}")
 
 

@@ -12,7 +12,7 @@ def get_device():
     """Check for GPU availability."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
-    print(torch.cuda.memory_summary(abbreviated=True))
+    #print(torch.cuda.memory_summary(abbreviated=True))
     return device
 
 def load_training_data(device):
