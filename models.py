@@ -134,7 +134,7 @@ class LowEnergyTwoModel(nn.Module):
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256):
         super().__init__()
         self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
-        self.predictor = Predictor(repr_dim=repr_dim, action_dim=4)
+        self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
         self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
     
     def forward(self, observations, actions):
@@ -145,7 +145,8 @@ class LowEnergyTwoModel(nn.Module):
         for t in range(actions.size(1)):
             predicted_state = self.predictor(states[:, t], actions[:, t])
             predicted_states.append(predicted_state)
-            states[:, t + 1] = predicted_state  # teacher forcing
+            if t + 1 < states.size(1):
+                states[:, t + 1] = predicted_state  # teacher forcing
 
         predicted_states = torch.stack(predicted_states, dim=1)
 
@@ -182,29 +183,45 @@ class Encoder(nn.Module):
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(fc_input_dim, repr_dim)
         )
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(fc_input_dim, repr_dim)
     
     def forward(self, x):
         B, T, C, H, W = x.size()
+        print(f"Input shape: {x.shape}")
         x = x.contiguous().view(B * T, C, H, W)
+        print(f"After merging batch and time: {x.shape}")
         x = self.cnn(x)
+        print(f"After CNN: {x.shape}")
+        x = self.flatten(x)
+        print(f"After Flatten: {x.shape}")
+        x = self.fc(x)
+        print(f"After FC: {x.shape}")
         x = x.view(B, T, -1) # [B, T, repr_dim]
+        print(f"Final output shape: {x.shape}")
         return x
 
 class Predictor(nn.Module):
-    def __init__(self, repr_dim=256, action_dim=4):
+    def __init__(self, repr_dim=256, action_dim=2):
         super().__init__()
         self.fc = nn.Sequential(
             nn.Linear(repr_dim + action_dim, repr_dim),
             nn.ReLU(),
             nn.Linear(repr_dim, repr_dim)
         )
+        print(f"Initialized Predictor: Linear layer input size: {repr_dim + action_dim}, expected: {self.fc[0].in_features}")
     
     def forward(self, state, action):
+        print(f"state: {state.shape}")
+        print(f"action: {action.shape}")
         x = torch.cat([state, action], dim=1)
-        return self.fc(x)
+        print(f"after cat: {x.shape}")
+        x = self.fc(x)
+        print(f"after fc: {x.shape}")
+        return x
+
+
 
 class TargetEncoder(Encoder):
     def __init__(self, input_shape, repr_dim=256):
