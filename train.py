@@ -12,14 +12,14 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
         model.train()
         epoch_loss = 0.0
 
-        for i in range(10):
-            for batch in train_loader:
-                break
+        printed = False
 
         for batch in train_loader:
             states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
             actions = batch.actions.to(device, non_blocking=True)  # [B, T-1, 2]
-            print_sample(states[60])
+            if not printed:
+                print_sample(states[60])
+                printed = True
 
             predictions = model(states, actions)  # [B, T, D]
 
