@@ -129,3 +129,67 @@ class LowEnergyOneModel(nn.Module):
 
         return predictions
 
+class LowEnergyTwoModel(nn.Module):
+    # TODO: simplify this
+    def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256):
+        super().__init__()
+        self.encoder = Encoder(input_shape=(3, 64, 64), repr_dim=repr_dim)
+        self.predictor = Predictor(repr_dim=repr_dim, action_dim=4)
+        self.target_encoder = TargetEncoder(input_shape=(3, 64, 64), repr_dim=repr_dim)
+    
+    def forward(self, observations, actions):
+        states = self.encoder(observations[:, :-1])  # skip last observation
+        target_states = self.target_encoder(observations[:, 1:])  # skip first observation
+
+        predicted_states = []
+        for t in range(actions.size(1)):
+            predicted_state = self.predictor(states[:, t], actions[:, t])
+            predicted_states.append(predicted_state)
+            states[:, t + 1] = predicted_state  # teacher forcing
+
+        predicted_states = torch.stack(predicted_states, dim=1)
+
+        return predicted_states, target_states
+
+    def loss(predicted_states, target_states):
+        mse_loss = F.mse_loss(predicted_states, target_states)
+        variance = target_states.var(dim=0).mean()
+        var_loss = F.relu(1e-2 - variance).mean()
+        cov = torch.cov(target_states.T)
+        cov_loss = (cov.fill_diagonal_(0).pow(2).sum() / cov.size(0))
+
+        return mse_loss + var_loss + cov_loss
+
+
+class Encoder(nn.Module):
+    def __init__(self, input_shape, repr_dim=256):
+        super().__init__()
+        self.cnn = nn.Sequential(
+            nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear((input_shape[1] // 4) * (input_shape[2] // 4) * 64, repr_dim)
+        )
+    
+    def forward(self, x):
+        return self.cnn(x)
+
+class Predictor(nn.Module):
+    def __init__(self, repr_dim=256, action_dim=4):
+        super().__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(repr_dim + action_dim, repr_dim),
+            nn.ReLU(),
+            nn.Linear(repr_dim, repr_dim)
+        )
+    
+    def forward(self, state, action):
+        x = torch.cat([state, action], dim=1)
+        return self.fc(x)
+
+class TargetEncoder(Encoder):
+    def __init__(self, input_shape, repr_dim=256):
+        super().__init__(input_shape, repr_dim)
+

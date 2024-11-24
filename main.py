@@ -4,6 +4,7 @@ from train import train_low_energy_model
 import torch
 from models import MockModel
 from models import LowEnergyOneModel
+from models import LowEnergyTwoModel
 import glob
 import torch.optim as optim
 
@@ -86,10 +87,11 @@ if __name__ == "__main__":
     learning_rate = 1e-4
 
     device = get_device()
-    model = LowEnergyOneModel(device=device).to(device)
+    #model = LowEnergyOneModel(device=device).to(device)
+    model = LowEnergyTwoModel(device=device).to(device)
     train_loader = load_training_data("cpu") # cpu first then gpu?
 
-    train_low_energy_model(
+    train_low_energy_two_model(
         model=model,
         train_loader=train_loader,
         num_epochs=num_epochs,
