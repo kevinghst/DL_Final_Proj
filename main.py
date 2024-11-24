@@ -97,7 +97,7 @@ if __name__ == "__main__":
         device=device,
     )
 
-    probe_train_ds, probe_val_ds = load_data(device)
+    ####probe_train_ds, probe_val_ds = load_data(device)
     #model = load_model() # for empty model
-    evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    ####evaluate_model(device, model, probe_train_ds, probe_val_ds)
 
