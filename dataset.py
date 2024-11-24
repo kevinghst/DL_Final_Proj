@@ -19,8 +19,6 @@ class WallDataset:
         self.device = device
         self.states = np.load(f"{data_path}/states.npy", mmap_mode="r")
         self.actions = np.load(f"{data_path}/actions.npy")
-        print(f'length = {len(self.states)}')
-        print(f'size = {self.states.size}')
 
         if probing:
             self.locations = np.load(f"{data_path}/locations.npy")
