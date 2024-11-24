@@ -12,13 +12,15 @@ import torch.optim as optim
 def get_device():
     """Check for GPU availability."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps" if torch.backends.mps.is_available() else device)
     print("Using device:", device)
     #print(torch.cuda.memory_summary(abbreviated=True))
     return device
 
 def load_training_data(device):
     #data_path = "/scratch/DL24FA/train"
-    data_path = "/scratch/ph1499/partial"
+    #data_path = "/scratch/ph1499/partial"
+    data_path = "./train"
 
     train_ds = create_wall_dataloader(
         data_path=f"{data_path}",
