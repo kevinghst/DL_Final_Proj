@@ -56,8 +56,8 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         epoch_loss = 0.0
 
         for batch in train_loader:
-            observations = batch["observations"].to(device)  # [B, T+1, Ch, H, W]
-            actions = batch["actions"].to(device)  # [B, T, action_dim]
+            observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
+            actions = batch.actions.to(device)  # [B, T, action_dim]
             predicted_states, target_states = model(observations, actions)
             loss = model.loss(predicted_states, target_states)
             optimizer.zero_grad()

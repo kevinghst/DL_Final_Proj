@@ -133,9 +133,9 @@ class LowEnergyTwoModel(nn.Module):
     # TODO: simplify this
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256):
         super().__init__()
-        self.encoder = Encoder(input_shape=(3, 64, 64), repr_dim=repr_dim)
+        self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=4)
-        self.target_encoder = TargetEncoder(input_shape=(3, 64, 64), repr_dim=repr_dim)
+        self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
     
     def forward(self, observations, actions):
         states = self.encoder(observations[:, :-1])  # skip last observation
@@ -164,17 +164,34 @@ class LowEnergyTwoModel(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, input_shape, repr_dim=256):
         super().__init__()
+
+        # calculate linear layer input size
+        C, H, W = input_shape
+
+        def conv2d_output_size(H, W, kernel_size, stride, padding):
+            H_out = (H + 2 * padding - kernel_size) // stride + 1
+            W_out = (W + 2 * padding - kernel_size) // stride + 1
+            return H_out, W_out
+
+        H, W = conv2d_output_size(H, W, kernel_size=3, stride=2, padding=1)
+        H, W = conv2d_output_size(H, W, kernel_size=3, stride=2, padding=1)
+        fc_input_dim = H * W * 64
+
         self.cnn = nn.Sequential(
             nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear((input_shape[1] // 4) * (input_shape[2] // 4) * 64, repr_dim)
+            nn.Linear(fc_input_dim, repr_dim)
         )
     
     def forward(self, x):
-        return self.cnn(x)
+        B, T, C, H, W = x.size()
+        x = x.contiguous().view(B * T, C, H, W)
+        x = self.cnn(x)
+        x = x.view(B, T, -1) # [B, T, repr_dim]
+        return x
 
 class Predictor(nn.Module):
     def __init__(self, repr_dim=256, action_dim=4):

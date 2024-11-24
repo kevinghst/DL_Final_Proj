@@ -1,6 +1,6 @@
 from dataset import create_wall_dataloader
 from evaluator import ProbingEvaluator
-from train import train_low_energy_model
+from train import train_low_energy_model, train_low_energy_two_model
 import torch
 from models import MockModel
 from models import LowEnergyOneModel
@@ -17,8 +17,8 @@ def get_device():
     return device
 
 def load_training_data(device):
-    data_path = "/scratch/DL24FA/train"
-    #data_path = "/scratch/ph1499/partial"
+    #data_path = "/scratch/DL24FA/train"
+    data_path = "/scratch/ph1499/partial"
 
     train_ds = create_wall_dataloader(
         data_path=f"{data_path}",
