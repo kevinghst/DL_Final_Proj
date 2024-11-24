@@ -78,9 +78,9 @@ def plot_full_trajectory(position_channel, walls_channel):
     steps, height, width = position_channel.shape
     walls = walls_channel[0]
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.imshow(walls, cmap="gray", alpha=1.0)  # Static walls
     for t in range(steps):
-        ax.imshow(position_channel[t], cmap="viridis", alpha=0.6)
+        ax.imshow(position_channel[t], cmap="viridis", alpha=0.3)
+    ax.imshow(walls, cmap="gray", alpha=1.0)
     ax.set_title("Agent Trajectory Over Static Walls")
     ax.axis("off")
     fig.tight_layout()
