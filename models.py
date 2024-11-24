@@ -36,10 +36,7 @@ class MockModel(torch.nn.Module):
         Output:
             predictions: [B, T, D]
         """
-        print(f'state {states.size()}')
-        print(f'actions {actions.size()}')
         r = torch.randn((self.bs, self.n_steps, self.repr_dim)).to(self.device)
-        print(f'return {r.size()}')
         return r
 
 
@@ -152,11 +149,14 @@ class LowEnergyTwoModel(nn.Module):
 
         return predicted_states, target_states
 
-    def loss(predicted_states, target_states):
+    def loss(self, predicted_states, target_states):
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
         var_loss = F.relu(1e-2 - variance).mean()
-        cov = torch.cov(target_states.T)
+        B, T, repr_dim = target_states.size()
+        flattened_states = target_states.view(B * T, repr_dim)  # [B*T, repr_dim]
+        cov = torch.cov(flattened_states.T)
+        #cov = torch.cov(target_states.T)
         cov_loss = (cov.fill_diagonal_(0).pow(2).sum() / cov.size(0))
 
         return mse_loss + var_loss + cov_loss
@@ -189,17 +189,11 @@ class Encoder(nn.Module):
     
     def forward(self, x):
         B, T, C, H, W = x.size()
-        print(f"Input shape: {x.shape}")
         x = x.contiguous().view(B * T, C, H, W)
-        print(f"After merging batch and time: {x.shape}")
         x = self.cnn(x)
-        print(f"After CNN: {x.shape}")
         x = self.flatten(x)
-        print(f"After Flatten: {x.shape}")
         x = self.fc(x)
-        print(f"After FC: {x.shape}")
         x = x.view(B, T, -1) # [B, T, repr_dim]
-        print(f"Final output shape: {x.shape}")
         return x
 
 class Predictor(nn.Module):
@@ -210,18 +204,11 @@ class Predictor(nn.Module):
             nn.ReLU(),
             nn.Linear(repr_dim, repr_dim)
         )
-        print(f"Initialized Predictor: Linear layer input size: {repr_dim + action_dim}, expected: {self.fc[0].in_features}")
     
     def forward(self, state, action):
-        print(f"state: {state.shape}")
-        print(f"action: {action.shape}")
         x = torch.cat([state, action], dim=1)
-        print(f"after cat: {x.shape}")
         x = self.fc(x)
-        print(f"after fc: {x.shape}")
         return x
-
-
 
 class TargetEncoder(Encoder):
     def __init__(self, input_shape, repr_dim=256):
