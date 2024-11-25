@@ -66,9 +66,6 @@ class Prober(torch.nn.Module):
         return output
 
 class LowEnergyOneModel(nn.Module):
-    """
-    Modified to output predictions [B, T, D]
-    """
 
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, margin=1.0):
         super().__init__()
@@ -127,7 +124,7 @@ class LowEnergyOneModel(nn.Module):
         return predictions
 
 class LowEnergyTwoModel(nn.Module):
-    # TODO: simplify this
+
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256):
         super().__init__()
         self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)

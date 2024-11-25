@@ -13,14 +13,14 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
         model.train()
         epoch_loss = 0.0
 
-        printed = False
+        #printed = False
 
         for batch in train_loader:
             states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
             actions = batch.actions.to(device, non_blocking=True)  # [B, T-1, 2]
-            if not printed:
-                print_sample(states[60])
-                printed = True
+            #if not printed:
+            #    print_sample(states[60])
+            #    printed = True
 
             predictions = model(states, actions)  # [B, T, D]
 
@@ -56,10 +56,10 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         model.train()
         epoch_loss = 0.0
 
-        count = 0
+        #count = 0
         for batch in train_loader:
-            print(f'{count},',end="")
-            count = count + 1
+            #print(f'{count},',end="")
+            #count = count + 1
             observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
             predicted_states, target_states = model(observations, actions)
@@ -84,7 +84,7 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
 
             optimizer.step()
             epoch_loss += loss.item()
-            print(f"Batch loss: {loss.item()}")
+            #print(f"Batch loss: {loss.item()}")
 
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
