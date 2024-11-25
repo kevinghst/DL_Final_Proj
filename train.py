@@ -52,7 +52,7 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
 def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda"):
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    for epoch in range(50):
+    for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
 

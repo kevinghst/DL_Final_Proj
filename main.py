@@ -19,8 +19,8 @@ def get_device():
 
 def load_training_data(device):
     #data_path = "/scratch/DL24FA/train"
-    #data_path = "/scratch/ph1499/partial"
-    data_path = "./train"
+    data_path = "/scratch/ph1499/partial"
+    #data_path = "./train"
 
     train_ds = create_wall_dataloader(
         data_path=f"{data_path}",
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         device=device,
     )
 
-    ####probe_train_ds, probe_val_ds = load_data(device)
+    probe_train_ds, probe_val_ds = load_data(device)
     #model = load_model() # for empty model
-    ####evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    evaluate_model(device, model, probe_train_ds, probe_val_ds)
 

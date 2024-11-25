@@ -130,12 +130,19 @@ class LowEnergyTwoModel(nn.Module):
         self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
         self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
+        self.device = device
+        self.bs = bs
+        self.n_steps = n_steps
+        self.repr_dim = repr_dim
+        self.action_dim = 2
+        self.state_dim = (2, 64, 64)
+        self.output_dim = output_dim
     
-    def forward(self, observations, actions):
-        states = self.encoder(observations[:, :-1])  # skip last observation
-        target_states = self.target_encoder(observations[:, 1:])  # skip first observation
+    def forward(self, states, actions):
+        target_states = self.target_encoder(states[:, 1:])  # skip first observation
+        states = self.encoder(states[:, :-1])  # skip last observation
 
-        predicted_states = []
+        predicted_states = [states[:, 0].clone()]
         for t in range(actions.size(1)):
             predicted_state = self.predictor(states[:, t], actions[:, t])
             predicted_states.append(predicted_state)
@@ -147,6 +154,7 @@ class LowEnergyTwoModel(nn.Module):
         return predicted_states, target_states
 
     def loss(self, predicted_states, target_states):
+        predicted_states = predicted_states[:, 1:]
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
         var_loss = F.relu(1e-2 - variance).mean()
