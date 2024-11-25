@@ -168,14 +168,8 @@ class Encoder(nn.Module):
 
         # calculate linear layer input size
         C, H, W = input_shape
-
-        def conv2d_output_size(H, W, kernel_size, stride, padding):
-            H_out = (H + 2 * padding - kernel_size) // stride + 1
-            W_out = (W + 2 * padding - kernel_size) // stride + 1
-            return H_out, W_out
-
-        H, W = conv2d_output_size(H, W, kernel_size=3, stride=2, padding=1)
-        H, W = conv2d_output_size(H, W, kernel_size=3, stride=2, padding=1)
+        H, W = (H - 1) // 2 + 1, (W - 1) // 2 + 1
+        H, W = (H - 1) // 2 + 1, (W - 1) // 2 + 1
         fc_input_dim = H * W * 64
 
         self.cnn = nn.Sequential(

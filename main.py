@@ -91,7 +91,8 @@ if __name__ == "__main__":
     device = get_device()
     #model = LowEnergyOneModel(device=device).to(device)
     model = LowEnergyTwoModel(device=device).to(device)
-    train_loader = load_training_data("cpu") # cpu first then gpu?
+    #train_loader = load_training_data("cpu") # cpu first then gpu?
+    train_loader = load_training_data(device) # cpu first then gpu?
 
     train_low_energy_two_model(
         model=model,

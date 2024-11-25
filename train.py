@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from output import print_sample
+import matplotlib.pyplot as plt
 
 def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda"):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -62,11 +63,29 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
             predicted_states, target_states = model(observations, actions)
+
             loss = model.loss(predicted_states, target_states)
+
+            #if count == 10:
+            #    plt.plot(predicted_states[0,0].detach().cpu().numpy(), label="Predicted")
+            #    plt.plot(target_states[0,0].detach().cpu().numpy(), label="Target")
+            #    plt.legend()
+            #    plt.show()
+
             optimizer.zero_grad()
             loss.backward()
+            #for name, param in model.named_parameters():
+            #    print(f"{name}: {param.data.norm()} -> {param.data.norm()}")
+            #for param in model.parameters():
+            #    if param.grad is not None:
+            #        print(f"Gradient norm: {param.grad.norm()}")
+            #    else:
+            #        print("No gradient computed for this parameter.")
+
             optimizer.step()
             epoch_loss += loss.item()
+            print(f"Batch loss: {loss.item()}")
 
-        print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.4f}")
+
+        print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
 
