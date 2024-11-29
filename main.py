@@ -3,7 +3,6 @@ from evaluator import ProbingEvaluator
 from train import train_low_energy_model, train_low_energy_two_model
 import torch
 from models import MockModel
-from models import LowEnergyOneModel
 from models import LowEnergyTwoModel
 import glob
 import torch.optim as optim
@@ -18,8 +17,8 @@ def get_device():
     return device
 
 def load_training_data(device):
-    #data_path = "/scratch/DL24FA/train"
-    data_path = "/scratch/ph1499/partial"
+    data_path = "/scratch/DL24FA/train"
+    #data_path = "/scratch/ph1499/partial"
     #data_path = "./train"
 
     train_ds = create_wall_dataloader(
@@ -85,14 +84,12 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
 
 if __name__ == "__main__":
 
-    num_epochs = 25
+    num_epochs = 1
     learning_rate = 1e-4
 
     device = get_device()
-    #model = LowEnergyOneModel(device=device).to(device)
     model = LowEnergyTwoModel(device=device).to(device)
-    #train_loader = load_training_data("cpu") # cpu first then gpu?
-    train_loader = load_training_data(device) # cpu first then gpu?
+    train_loader = load_training_data(device) 
 
     train_low_energy_two_model(
         model=model,

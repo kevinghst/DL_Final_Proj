@@ -65,63 +65,6 @@ class Prober(torch.nn.Module):
         output = self.prober(e)
         return output
 
-class LowEnergyOneModel(nn.Module):
-
-    def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, margin=1.0):
-        super().__init__()
-        self.device = device
-        self.bs = bs
-        self.n_steps = n_steps
-        self.repr_dim = repr_dim
-        self.action_dim = 2
-        self.state_dim = (2, 64, 64)
-        self.output_dim = output_dim
-        self.margin = margin
-
-        self.state_encoder = nn.Sequential(
-            nn.Conv2d(in_channels=self.state_dim[0], out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Flatten(),
-            nn.Linear(128 * (self.state_dim[1] // 4) * (self.state_dim[2] // 4), self.repr_dim)
-        )
-
-        self.action_encoder = nn.Sequential(
-            nn.Linear(self.action_dim, 64),
-            nn.ReLU(),
-            nn.Linear(64, self.repr_dim)
-        )
-
-        self.combiner = nn.Sequential(
-            nn.Linear(self.repr_dim * 2, self.repr_dim),
-            nn.ReLU(),
-            nn.Linear(self.repr_dim, self.output_dim)
-        )
-
-    def forward(self, states, actions):
-        """
-        Args:
-            states: [B, T, Ch, H, W]
-            actions: [B, T-1, 2]
-
-        Output:
-            predictions: [B, T, D]
-        """
-        B, T, Ch, H, W = states.size()
-
-        states_encoded = self.state_encoder(states.view(B * T, Ch, H, W)).view(B, T, self.repr_dim)
-        actions_encoded = self.action_encoder(actions.view(B * (T - 1), self.action_dim)).view(B, T - 1, self.repr_dim)
-        combined = torch.cat((states_encoded[:, :-1, :], actions_encoded), dim=2) 
-        predictions = self.combiner(combined.view(B * (T - 1), self.repr_dim * 2)).view(B, T - 1, self.output_dim)
-        last_state_pred = self.combiner(
-            torch.cat((states_encoded[:, -1, :], torch.zeros_like(actions_encoded[:, -1, :])), dim=1)
-        )
-        predictions = torch.cat((predictions, last_state_pred.unsqueeze(1)), dim=1)
-
-        return predictions
 
 class LowEnergyTwoModel(nn.Module):
 
@@ -146,8 +89,8 @@ class LowEnergyTwoModel(nn.Module):
         for t in range(actions.size(1)):
             predicted_state = self.predictor(states[:, t], actions[:, t])
             predicted_states.append(predicted_state)
-            if t + 1 < states.size(1):
-                states[:, t + 1] = predicted_state  # teacher forcing
+            #if t + 1 < states.size(1):
+            #    states[:, t + 1] = predicted_state  # teacher forcing
 
         predicted_states = torch.stack(predicted_states, dim=1)
 
@@ -157,7 +100,7 @@ class LowEnergyTwoModel(nn.Module):
         predicted_states = predicted_states[:, 1:]
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
-        var_loss = F.relu(1e-2 - variance).mean()
+        var_loss = F.relu(1e-8 - variance).mean()
         B, T, repr_dim = target_states.size()
         flattened_states = target_states.view(B * T, repr_dim)  # [B*T, repr_dim]
         cov = torch.cov(flattened_states.T)

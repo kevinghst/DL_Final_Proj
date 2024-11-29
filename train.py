@@ -50,16 +50,14 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
 
 
 def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda"):
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
 
-        #count = 0
+        count = 0
         for batch in train_loader:
-            #print(f'{count},',end="")
-            #count = count + 1
             observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
             predicted_states, target_states = model(observations, actions)
@@ -84,7 +82,10 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
 
             optimizer.step()
             epoch_loss += loss.item()
-            #print(f"Batch loss: {loss.item()}")
+            print(f'{count},',end="")
+            count = count + 1
+            if count%200 == 1:
+                print(f"last batch loss: {loss.item()}")
 
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
