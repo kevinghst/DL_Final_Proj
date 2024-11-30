@@ -57,10 +57,19 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         epoch_loss = 0.0
 
         count = 0
+        gradient_norms = []
         for batch in train_loader:
             observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
+
+            observations[:, :, 0, :, :] *= 100000
             predicted_states, target_states = model(observations, actions)
+            #augmented1 = observations + (torch.randn_like(observations) * 5)
+            #if torch.rand(1).item() < 0.5:
+            #    augmented2 = augmented1.flip(-1)
+            #else:
+            #    augmented2 = augmented1
+            #predicted_states, target_states = model(augmented2, actions)
 
             loss = model.loss(predicted_states, target_states)
 
@@ -80,13 +89,32 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             #    else:
             #        print("No gradient computed for this parameter.")
 
+            batch_grad_norm = sum(param.grad.norm().item() for param in model.parameters() if param.grad is not None) / len(list(model.parameters()))
+            gradient_norms.append(batch_grad_norm)
             optimizer.step()
             epoch_loss += loss.item()
             print(f'{count},',end="")
             count = count + 1
-            if count%200 == 1:
+            if count%200 == 0:
                 print(f"last batch loss: {loss.item()}")
+                predicted_norms = torch.norm(predicted_states, dim=-1).view(-1).detach().cpu().numpy()
+                target_norms = torch.norm(target_states, dim=-1).view(-1).detach().cpu().numpy()
+                plt.figure(figsize=(8, 6))
+                plt.hist(predicted_norms, bins=50, alpha=0.5, label="Predicted States")
+                plt.hist(target_norms, bins=50, alpha=0.5, label="Target States")
+                plt.legend()
+                plt.title("Norm Distributions of Predicted and Target States")
+                plt.xlabel("Norm")
+                plt.ylabel("Frequency")
+                plt.show()
+
+                plt.plot(gradient_norms)
+                plt.title("Gradient Norms Over Training")
+                plt.xlabel("Iteration")
+                plt.ylabel("Mean Gradient Norm")
+                plt.show()
 
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
+        return predicted_states, target_states
 

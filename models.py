@@ -89,25 +89,34 @@ class LowEnergyTwoModel(nn.Module):
         for t in range(actions.size(1)):
             predicted_state = self.predictor(states[:, t], actions[:, t])
             predicted_states.append(predicted_state)
-            #if t + 1 < states.size(1):
-            #    states[:, t + 1] = predicted_state  # teacher forcing
+            if t + 1 < states.size(1):
+                states[:, t + 1] = predicted_state  # teacher forcing
 
         predicted_states = torch.stack(predicted_states, dim=1)
 
         return predicted_states, target_states
 
+    def contrastive_loss(self, predicted_states, target_states):
+        predicted_states = F.normalize(predicted_states, dim=-1)
+        target_states = F.normalize(target_states, dim=-1)
+        similarity = torch.matmul(predicted_states, target_states.transpose(-1, -2))
+        batch_size, seq_len, _ = predicted_states.size()
+        positive_pairs = torch.diagonal(similarity, offset=0, dim1=-1, dim2=-2).mean()
+        negative_pairs = similarity.mean() - positive_pairs
+        return -positive_pairs + negative_pairs
+
     def loss(self, predicted_states, target_states):
         predicted_states = predicted_states[:, 1:]
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
-        var_loss = F.relu(1e-8 - variance).mean()
+        var_loss = F.relu(1e-4 - variance).mean()
         B, T, repr_dim = target_states.size()
         flattened_states = target_states.view(B * T, repr_dim)  # [B*T, repr_dim]
         cov = torch.cov(flattened_states.T)
         #cov = torch.cov(target_states.T)
         cov_loss = (cov.fill_diagonal_(0).pow(2).sum() / cov.size(0))
-
-        return mse_loss + var_loss + cov_loss
+        contrastive = self.contrastive_loss(predicted_states, target_states)
+        return mse_loss + var_loss + cov_loss #+ .1*contrastive
 
 
 class Encoder(nn.Module):

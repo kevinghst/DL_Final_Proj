@@ -88,10 +88,16 @@ if __name__ == "__main__":
     learning_rate = 1e-4
 
     device = get_device()
-    model = LowEnergyTwoModel(device=device).to(device)
+    model = LowEnergyTwoModel(device=device, repr_dim=256).to(device)
     train_loader = load_training_data(device) 
 
-    train_low_energy_two_model(
+    #def init_weights(m):
+    #    if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
+    #        torch.nn.init.xavier_uniform_(m.weight)
+
+    #model.apply(init_weights)
+
+    predicted_states, target_states = train_low_energy_two_model(
         model=model,
         train_loader=train_loader,
         num_epochs=num_epochs,
