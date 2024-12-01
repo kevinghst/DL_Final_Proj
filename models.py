@@ -142,6 +142,9 @@ class Encoder(nn.Module):
 
     
     def forward(self, x):
+        #x[:, :, 0, :, :] *= 1000 # the numbers are really small
+        x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
+        
         B, T, C, H, W = x.size()
         y = x
         x = x.contiguous().view(B * T, C, H, W)

@@ -1,6 +1,6 @@
 from dataset import create_wall_dataloader
 from evaluator import ProbingEvaluator
-from train import train_low_energy_model, train_low_energy_two_model
+from train import train_low_energy_two_model
 import torch
 from models import MockModel
 from models import LowEnergyTwoModel
@@ -84,7 +84,7 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
 
 if __name__ == "__main__":
 
-    num_epochs = 1
+    num_epochs = 5
     learning_rate = 1e-4
 
     device = get_device()
