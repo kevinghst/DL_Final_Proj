@@ -16,8 +16,11 @@ def train_low_energy_model(model, train_loader, num_epochs=50, learning_rate=1e-
         #printed = False
 
         for batch in train_loader:
-            states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
+            unnormalized_states = batch.states.to(device, non_blocking=True)  # [B, T, Ch, H, W]
             actions = batch.actions.to(device, non_blocking=True)  # [B, T-1, 2]
+
+            states = unnormalized_states / unnormalized_states.max()  # Scale to [0, 1]
+
             #if not printed:
             #    print_sample(states[60])
             #    printed = True
@@ -57,12 +60,14 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         epoch_loss = 0.0
 
         count = 0
-        gradient_norms = []
+        #gradient_norms = []
+        gradient_norms = {"encoder": [], "target_encoder": [], "predictor": []}
+
         for batch in train_loader:
             observations = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
 
-            observations[:, :, 0, :, :] *= 100000
+            #observations[:, :, 0, :, :] *= 1000
             predicted_states, target_states = model(observations, actions)
             #augmented1 = observations + (torch.randn_like(observations) * 5)
             #if torch.rand(1).item() < 0.5:
@@ -89,8 +94,22 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             #    else:
             #        print("No gradient computed for this parameter.")
 
-            batch_grad_norm = sum(param.grad.norm().item() for param in model.parameters() if param.grad is not None) / len(list(model.parameters()))
-            gradient_norms.append(batch_grad_norm)
+            #batch_grad_norm = sum(param.grad.norm().item() for param in model.parameters() if param.grad is not None) / len(list(model.parameters()))
+            #gradient_norms.append(batch_grad_norm)
+
+            collect_gradient_norms = {"encoder": 0, "target_encoder": 0, "predictor": 0}
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    grad_norm = param.grad.norm().item()
+                    if "encoder" in name and "target_encoder" not in name:  # Encoder
+                        collect_gradient_norms["encoder"] += grad_norm
+                    elif "target_encoder" in name:  # Target Encoder
+                        collect_gradient_norms["target_encoder"] += grad_norm
+                    elif "predictor" in name:  # Predictor
+                        collect_gradient_norms["predictor"] += grad_norm
+            gradient_norms["encoder"].append(collect_gradient_norms["encoder"])
+            gradient_norms["target_encoder"].append(collect_gradient_norms["target_encoder"])
+            gradient_norms["predictor"].append(collect_gradient_norms["predictor"])
             optimizer.step()
             epoch_loss += loss.item()
             print(f'{count},',end="")
@@ -108,11 +127,17 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
                 plt.ylabel("Frequency")
                 plt.show()
 
-                plt.plot(gradient_norms)
+                #plt.plot(gradient_norms)
+                plt.figure(figsize=(10, 6))  # Optional: Adjust the figure size
+                for part, norms in gradient_norms.items():
+                    plt.plot(norms, label=part) 
                 plt.title("Gradient Norms Over Training")
                 plt.xlabel("Iteration")
                 plt.ylabel("Mean Gradient Norm")
+                plt.legend()
                 plt.show()
+            #if count == 400:
+            #    break
 
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")

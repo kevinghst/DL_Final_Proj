@@ -73,6 +73,7 @@ class LowEnergyTwoModel(nn.Module):
         self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
         self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
+        #self.encoder.cnn = self.target_encoder.cnn # try weight sharing
         self.device = device
         self.bs = bs
         self.n_steps = n_steps
@@ -109,14 +110,14 @@ class LowEnergyTwoModel(nn.Module):
         predicted_states = predicted_states[:, 1:]
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
-        var_loss = F.relu(1e-4 - variance).mean()
+        var_loss = F.relu(1e-2 - variance).mean()
         B, T, repr_dim = target_states.size()
         flattened_states = target_states.view(B * T, repr_dim)  # [B*T, repr_dim]
         cov = torch.cov(flattened_states.T)
         #cov = torch.cov(target_states.T)
         cov_loss = (cov.fill_diagonal_(0).pow(2).sum() / cov.size(0))
-        contrastive = self.contrastive_loss(predicted_states, target_states)
-        return mse_loss + var_loss + cov_loss #+ .1*contrastive
+        #contrastive = self.contrastive_loss(predicted_states, target_states)
+        return mse_loss + var_loss #+ cov_loss #+ .1*contrastive
 
 
 class Encoder(nn.Module):
@@ -137,15 +138,24 @@ class Encoder(nn.Module):
         )
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(fc_input_dim, repr_dim)
+        self.skip_fc = nn.Linear(C * input_shape[1] * input_shape[2], repr_dim)
+
     
     def forward(self, x):
         B, T, C, H, W = x.size()
+        y = x
         x = x.contiguous().view(B * T, C, H, W)
         x = self.cnn(x)
         x = self.flatten(x)
         x = self.fc(x)
         x = x.view(B, T, -1) # [B, T, repr_dim]
-        return x
+
+        # skip connection
+        y = y.contiguous().view(B * T, -1)  # [B * T, C * H * W]
+        y = self.skip_fc(y)
+        y = y.view(B, T, -1)  # Reshape back to [B, T, repr_dim]
+        
+        return x + y
 
 class Predictor(nn.Module):
     def __init__(self, repr_dim=256, action_dim=2):
