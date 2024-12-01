@@ -1,8 +1,10 @@
+# main.py
+
 from dataset import create_wall_dataloader
 from evaluator import ProbingEvaluator
 import torch
-from models import MockModel
-import glob
+from models import JEPA_Model  # Changed import to JEPA_Model
+import os
 
 
 def get_device():
@@ -41,10 +43,17 @@ def load_data(device):
     return probe_train_ds, probe_val_ds
 
 
-def load_model():
-    """Load or initialize the model."""
-    # TODO: Replace MockModel with your trained model
-    model = MockModel()
+def load_model(device, model_path=None):
+    """Load the trained JEPA model."""
+    model = JEPA_Model(device=device, repr_dim=256, action_dim=2)
+    if model_path is not None and os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        print(f"Loaded model from {model_path}")
+    else:
+        print("No trained model found at specified path. Please train the model first.")
+        exit(1)  # Exit if model is not found
+    model.to(device)
+    model.eval()
     return model
 
 
@@ -62,11 +71,13 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
     avg_losses = evaluator.evaluate_all(prober=prober)
 
     for probe_attr, loss in avg_losses.items():
-        print(f"{probe_attr} loss: {loss}")
+        #print(f"{probe_attr} loss: {loss}")
 
 
 if __name__ == "__main__":
     device = get_device()
     probe_train_ds, probe_val_ds = load_data(device)
-    model = load_model()
+    # Specify the path to the trained model checkpoint
+    model_checkpoint = "checkpoints/jepa_model_epoch_final.pth"  # Update this path as needed
+    model = load_model(device, model_path=model_checkpoint)
     evaluate_model(device, model, probe_train_ds, probe_val_ds)
