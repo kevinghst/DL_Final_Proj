@@ -1,0 +1,5 @@
+#Ignore these files!
+__pycache__/
+.ipynb_checkpoints/
+.read_states.py.swp
+checkpoints/
