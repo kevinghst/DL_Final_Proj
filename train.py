@@ -66,8 +66,8 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
                 plt.ylabel("Mean Gradient Norm")
                 plt.legend()
                 plt.show()
-            if test_mode and count == 400:
-                break
+            if test_mode and count == 10:
+                return predicted_states, target_states
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
     return predicted_states, target_states

@@ -19,7 +19,7 @@ def get_device(local=False):
 
 def load_training_data(device, local=False):
     if local:
-        data_path="/Users/patrick/data"
+        data_path="/Users/patrick/data/train"
     else:
         data_path="/scratch/DL24FA/train"
 
@@ -64,10 +64,9 @@ def load_data(device, local=False):
     return probe_train_ds, probe_val_ds
 
 
-def load_model():
+def load_model(device='cuda', local=False):
     """Load or initialize the model."""
     # model = MockModel()
-    device = get_device()
     model = LowEnergyTwoModel(device=device, repr_dim=256).to(device)
     model.load_state_dict(torch.load("best_model.pth", weights_only=True))
     return model
@@ -125,13 +124,15 @@ if __name__ == "__main__":
             device=device,
             test_mode=test_mode,
         )
+        print()
+        print('Saving low energy model in best_model.pth')
         torch.save(model.state_dict(), "best_model.pth")
 
     else: 
         # evaluate the model
         print('Evaluating best_model.pth')
         probe_train_ds, probe_val_ds = load_data(device, local=local)
-        model = load_model()
+        model = load_model(device=device, local=local)
         evaluate_model(device, model, probe_train_ds, probe_val_ds)
 
 
