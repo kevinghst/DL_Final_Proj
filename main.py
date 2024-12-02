@@ -6,20 +6,22 @@ from models import MockModel
 from models import LowEnergyTwoModel
 import glob
 import torch.optim as optim
+import argparse
 
 
-def get_device():
+def get_device(local=False):
     """Check for GPU availability."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("mps" if torch.backends.mps.is_available() else device)
+    if local:
+        device = torch.device("mps" if torch.backends.mps.is_available() else device)
     print("Using device:", device)
-    #print(torch.cuda.memory_summary(abbreviated=True))
     return device
 
-def load_training_data(device):
-    data_path = "/scratch/DL24FA/train"
-    #data_path = "/scratch/ph1499/partial"
-    #data_path = "./train"
+def load_training_data(device, local=False):
+    if local:
+        data_path="/Users/patrick/data"
+    else:
+        data_path="/scratch/DL24FA/train"
 
     train_ds = create_wall_dataloader(
         data_path=f"{data_path}",
@@ -30,8 +32,11 @@ def load_training_data(device):
 
     return train_ds
 
-def load_data(device):
-    data_path = "/scratch/DL24FA"
+def load_data(device, local=False):
+    if local:
+        data_path="/Users/patrick/data"
+    else:
+        data_path="/scratch/DL24FA"
 
     probe_train_ds = create_wall_dataloader(
         data_path=f"{data_path}/probe_normal/train",
@@ -61,8 +66,10 @@ def load_data(device):
 
 def load_model():
     """Load or initialize the model."""
-    # TODO: Replace MockModel with your trained model
-    model = MockModel()
+    # model = MockModel()
+    device = get_device()
+    model = LowEnergyTwoModel(device=device, repr_dim=256).to(device)
+    model.load_state_dict(torch.load("best_model.pth", weights_only=True))
     return model
 
 
@@ -84,28 +91,47 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
 
 if __name__ == "__main__":
 
-    num_epochs = 5
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train", action="store_true", help="train model and save .pth file")
+    parser.add_argument("--local", action="store_true", help="run on OS X")
+    parser.add_argument("--test", action="store_true", help="test mode")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs (default: 1)")
+    args = parser.parse_args()
+
+    num_epochs = args.epochs
+    train_only = args.train
+    local = args.local
+    test_mode = args.test
     learning_rate = 1e-4
+    repr_dim = 256
 
-    device = get_device()
-    model = LowEnergyTwoModel(device=device, repr_dim=256).to(device)
-    train_loader = load_training_data(device) 
 
-    #def init_weights(m):
-    #    if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
-    #        torch.nn.init.xavier_uniform_(m.weight)
+    device = get_device(local=local)
+    print(f'Epochs = {num_epochs}')
+    print(f'Local execution = {local}')
+    print(f'Learning rate = {learning_rate}')
+    print(f'Representation dimension = {repr_dim}')
 
-    #model.apply(init_weights)
+    if train_only:
+        print('Training low energy model')
+        model = LowEnergyTwoModel(device=device, repr_dim=repr_dim).to(device)
+        train_loader = load_training_data(device=device, local=local) 
 
-    predicted_states, target_states = train_low_energy_two_model(
-        model=model,
-        train_loader=train_loader,
-        num_epochs=num_epochs,
-        learning_rate=learning_rate,
-        device=device,
-    )
+        predicted_states, target_states = train_low_energy_two_model(
+            model=model,
+            train_loader=train_loader,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+            device=device,
+            test_mode=test_mode,
+        )
+        torch.save(model.state_dict(), "best_model.pth")
 
-    probe_train_ds, probe_val_ds = load_data(device)
-    #model = load_model() # for empty model
-    evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    else: 
+        # evaluate the model
+        print('Evaluating best_model.pth')
+        probe_train_ds, probe_val_ds = load_data(device, local=local)
+        model = load_model()
+        evaluate_model(device, model, probe_train_ds, probe_val_ds)
+
 

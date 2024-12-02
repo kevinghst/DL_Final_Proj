@@ -6,7 +6,8 @@ from output import print_sample
 import matplotlib.pyplot as plt
 
 
-def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda"):
+def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate=1e-4, device="cuda", test_mode=False):
+
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     for epoch in range(num_epochs):
@@ -14,22 +15,14 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         epoch_loss = 0.0
 
         count = 0
-        #gradient_norms = []
         gradient_norms = {"encoder": [], "target_encoder": [], "predictor": []}
 
         for batch in train_loader:
             states = batch.states.to(device)  # [B, T+1, Ch, H, W]
             actions = batch.actions.to(device)  # [B, T, action_dim]
 
-            #states = unnormalized_states / unnormalized_states.max()  # Scale to [0, 1]
-            #states[:, :, 1, :, :] = (states[:, :, 1, :, :] == 0).float() # invert walls
-            #states[:, :, 1, :, :] = states[:, :, 0, :, :] # copy channel over wall channel
-
-            #observations[:, :, 0, :, :] *= 1000
             predicted_states, target_states = model(states, actions)
-
             loss = model.loss(predicted_states, target_states)
-
             optimizer.zero_grad()
             loss.backward()
 
@@ -46,8 +39,10 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             gradient_norms["encoder"].append(collect_gradient_norms["encoder"])
             gradient_norms["target_encoder"].append(collect_gradient_norms["target_encoder"])
             gradient_norms["predictor"].append(collect_gradient_norms["predictor"])
+
             optimizer.step()
             epoch_loss += loss.item()
+
             print(f'{count},',end="")
             count = count + 1
             if count%200 == 0:
@@ -71,9 +66,8 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
                 plt.ylabel("Mean Gradient Norm")
                 plt.legend()
                 plt.show()
-            #if count == 400:
-            #    break
-
+            if test_mode and count == 400:
+                break
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
     return predicted_states, target_states
