@@ -68,7 +68,7 @@ class Prober(torch.nn.Module):
 
 class LowEnergyTwoModel(nn.Module):
 
-    def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256):
+    def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, training=False):
         super().__init__()
         self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
@@ -81,21 +81,37 @@ class LowEnergyTwoModel(nn.Module):
         self.action_dim = 2
         self.state_dim = (2, 64, 64)
         self.output_dim = output_dim
+        self.training = training
     
     def forward(self, states, actions):
-        target_states = self.target_encoder(states[:, 1:])  # skip first observation
-        states = self.encoder(states[:, :-1])  # skip last observation
 
-        predicted_states = [states[:, 0].clone()]
-        for t in range(actions.size(1)):
-            predicted_state = self.predictor(states[:, t], actions[:, t])
-            predicted_states.append(predicted_state)
-            if t + 1 < states.size(1):
-                states[:, t + 1] = predicted_state  # teacher forcing
+        if self.training:
+            # the input states include each step in the trajectory
+            target_states = self.target_encoder(states[:, 1:])  # skip first observation
+            states = self.encoder(states[:, :-1])  # skip last observation
 
-        predicted_states = torch.stack(predicted_states, dim=1)
+            predicted_states = [states[:, 0].clone()]
+            for t in range(actions.size(1)):
+                predicted_state = self.predictor(states[:, t], actions[:, t])
+                predicted_states.append(predicted_state)
+                if t + 1 < states.size(1):
+                    states[:, t + 1] = predicted_state  # teacher forcing
 
-        return predicted_states, target_states
+            predicted_states = torch.stack(predicted_states, dim=1)
+
+            return predicted_states, target_states
+
+         else:
+            # the input states only include the first step in the trajectory
+            predicted_state = self.encoder(states[:, 0].clone())
+            predicted_states = [predicted_state]
+            for t in range(actions.size(1)):
+                predicted_state = self.predictor(predicted_state, actions[:, t])
+                predicted_states.append(predicted_state)
+
+	    return predicted_states, None
+    
+
 
     def contrastive_loss(self, predicted_states, target_states):
         predicted_states = F.normalize(predicted_states, dim=-1)

@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     if train_only:
         print('Training low energy model')
-        model = LowEnergyTwoModel(device=device, repr_dim=repr_dim).to(device)
+        model = LowEnergyTwoModel(device=device, repr_dim=repr_dim, training=True).to(device)
         train_loader = load_training_data(device=device, local=local) 
 
         predicted_states, target_states = train_low_energy_two_model(
