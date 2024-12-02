@@ -183,6 +183,7 @@ class ProbingEvaluator:
     def evaluate_all(
         self,
         prober,
+        device='cuda',
     ):
         """
         Evaluates on all the different validation datasets
@@ -194,6 +195,7 @@ class ProbingEvaluator:
                 prober=prober,
                 val_ds=val_ds,
                 prefix=prefix,
+                device=device,
             )
 
         return avg_losses
@@ -204,6 +206,7 @@ class ProbingEvaluator:
         prober,
         val_ds,
         prefix="",
+        device='cuda',
     ):
         quick_debug = self.quick_debug
         config = self.config
