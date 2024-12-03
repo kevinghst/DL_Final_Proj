@@ -182,9 +182,9 @@ class Predictor(nn.Module):
     def __init__(self, repr_dim=256, action_dim=2):
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(repr_dim + action_dim, repr_dim),
+            nn.Linear(repr_dim + action_dim, repr_dim * 2),
             nn.ReLU(),
-            nn.Linear(repr_dim, repr_dim)
+            nn.Linear(repr_dim * 2, repr_dim)
         )
     
     def forward(self, state, action):
