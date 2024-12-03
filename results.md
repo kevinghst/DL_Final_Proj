@@ -26,3 +26,12 @@ walls present in training
 normal loss: 263.523193359375
 wall loss: 186.24496459960938
 
+Trial 3
+12/2 8:05PM
+adcc36fbffe71c5b73af55d8fe6ee70db70c96d7
+no training 
+using MockModel
+normal loss: 265.5936279296875
+wall loss: 191.27317810058594
+
+
