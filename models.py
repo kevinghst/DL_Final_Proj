@@ -201,7 +201,7 @@ class Encoder(nn.Module):
         return x + y
 
 class Predictor(nn.Module):
-    def __init__(self, repr_dim=256, action_dim=32):
+    def __init__(self, repr_dim=256, action_dim=32, wall_dim=128):
         super().__init__()
 
         self.action_embedding = nn.Sequential(
@@ -210,7 +210,7 @@ class Predictor(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(repr_dim + action_dim, repr_dim * 2),
+            nn.Linear(repr_dim + action_dim + wall_dim, repr_dim * 2),
             nn.ReLU(),
             nn.Linear(repr_dim * 2, repr_dim)
         )
@@ -227,7 +227,7 @@ class TargetEncoder(Encoder):
 
 
 class WallEncoder(nn.Module):
-    def __init__(self, input_shape=(1, 65, 65), repr_dim=128):
+    def __init__(self, input_shape=(2, 65, 65), repr_dim=128):
         super().__init__()
 
         # Calculate linear layer input size
@@ -247,6 +247,7 @@ class WallEncoder(nn.Module):
         self.fc = nn.Linear(fc_input_dim, repr_dim)  # Output size = 128
 
     def forward(self, x):
+        x[:, :, 0, :, :] = x[:, :, 1, :, :] # copy trajectory channel over wall channel
         B, T, C, H, W = x.size()  # Expect input shape (batch_size, 1, 1, 65, 65)
         x = x.contiguous().view(B * T, C, H, W)  # Combine batch and time dimensions
         x = self.cnn(x)  # Apply CNN
