@@ -217,8 +217,7 @@ class Predictor(nn.Module):
     
     def forward(self, state, action, wall):
         action = self.action_embedding(action)
-        print(state.shape, action.shape, wall.shape)
-        x = torch.cat([state, action, wall], dim=1)
+        x = torch.cat([state, action, wall.squeeze(1)], dim=1)
         x = self.fc(x)
         return x
 
