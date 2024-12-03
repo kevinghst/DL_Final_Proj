@@ -89,7 +89,7 @@ class LowEnergyTwoModel(nn.Module):
     def forward(self, states, actions):
 
         bs, action_length, action_dim = actions.shape # (bs, 16, 2)
-        trajectory = states[:,:,0,:,:].clone()
+        trajectory = states[:,:,0:1,:,:].clone()
         encoded_states = self.encoder(trajectory[:,:1])
         encoded_target_states = None
         if self.training:
