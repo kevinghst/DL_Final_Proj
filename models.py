@@ -85,6 +85,21 @@ class LowEnergyTwoModel(nn.Module):
     
     def forward(self, states, actions):
 
+        bs, action_length, action_dim = actions.shape # (bs, 16, 2)
+
+        encoded_states = self.encoder(states[:,:1])
+        encoded_target_states = self.target_encoder(states[:, :-1])
+
+
+        predicted_states = []
+        predicted_states.append(encoded_states[:,0])
+        for i in range(action_length):
+            prediction = self.predictor(predicted_states[i], actions[:,i]) # (bs, 256)
+            predicted_states.append(prediction)
+        predicted_states = torch.stack(predicted_states, dim=1)  # (16, bs, 256)
+
+        return predicted_states, encoded_target_states
+
         if self.training:
             # the input states include each step in the trajectory
             target_states = self.target_encoder(states[:, 1:])  # skip first observation
@@ -203,3 +218,32 @@ class TargetEncoder(Encoder):
     def __init__(self, input_shape, repr_dim=256):
         super().__init__(input_shape, repr_dim)
 
+
+class WallEncoder(nn.Module):
+    def __init__(self, input_shape=(1, 65, 65), repr_dim=128):
+        super().__init__()
+
+        # Calculate linear layer input size
+        C, H, W = input_shape  # (C=1, H=65, W=65)
+        H, W = (H - 1) // 2 + 1, (W - 1) // 2 + 1  # After first conv (stride=2)
+        H, W = (H - 1) // 2 + 1, (W - 1) // 2 + 1  # After second conv (stride=2)
+        fc_input_dim = H * W * 64  # Final flattened size
+
+        # Define CNN and fully connected layers
+        self.cnn = nn.Sequential(
+            nn.Conv2d(C, 32, kernel_size=3, stride=2, padding=1),  # Input channels = 1
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+        )
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(fc_input_dim, repr_dim)  # Output size = 128
+
+    def forward(self, x):
+        B, T, C, H, W = x.size()  # Expect input shape (batch_size, 1, 1, 65, 65)
+        x = x.contiguous().view(B * T, C, H, W)  # Combine batch and time dimensions
+        x = self.cnn(x)  # Apply CNN
+        x = self.flatten(x)  # Flatten to (B*T, fc_input_dim)
+        x = self.fc(x)  # Apply fully connected layer
+        x = x.view(B, T, -1)  # Reshape to (batch_size, 1, repr_dim=128)
+        return x
