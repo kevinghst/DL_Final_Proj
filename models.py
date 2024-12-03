@@ -73,10 +73,10 @@ class LowEnergyTwoModel(nn.Module):
 
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, training=False):
         super().__init__()
-        self.encoder = Encoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
+        self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
-        self.target_encoder = TargetEncoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
-        self.wall_encoder = WallEncoder(input_shape=(1, 65, 65), repr_dim=128)
+        self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
+        self.wall_encoder = WallEncoder(input_shape=(2, 65, 65), repr_dim=128)
         self.device = device
         self.bs = bs
         self.n_steps = n_steps
@@ -89,20 +89,21 @@ class LowEnergyTwoModel(nn.Module):
     def forward(self, states, actions):
 
         bs, action_length, action_dim = actions.shape # (bs, 16, 2)
-        trajectory = states[:,:,0:1,:,:].clone()
-        print(trajectory.shape)
-        encoded_states = self.encoder(trajectory[:,:1])
+        # trajectory = states[:,:,0:1,:,:].clone()
+        # wall = states[:,:,1:,:,:].clone()
+        encoded_states = self.encoder(states[:,:1])
+        encoded_wall = self.wall_encoder(states[:, :1])
         encoded_target_states = None
         if self.training:
-            encoded_target_states = self.target_encoder(trajectory[:, :-1])
+            encoded_target_states = self.target_encoder(states[:, :-1])
 
 
         predicted_states = []
         predicted_states.append(encoded_states[:,0])
         for i in range(action_length):
-            prediction = self.predictor(predicted_states[i], actions[:,i]) # (bs, 256)
+            prediction = self.predictor(predicted_states[i], actions[:,i], encoded_wall) # (bs, 256)
             predicted_states.append(prediction)
-        predicted_states = torch.stack(predicted_states, dim=1)  # (16, bs, 256)
+        predicted_states = torch.stack(predicted_states, dim=1)  # (17, bs, 256)
 
         return predicted_states, encoded_target_states
 
@@ -182,7 +183,7 @@ class Encoder(nn.Module):
     
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
-        # x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
+        x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
         
         B, T, C, H, W = x.size()
         y = x
@@ -214,9 +215,9 @@ class Predictor(nn.Module):
             nn.Linear(repr_dim * 2, repr_dim)
         )
     
-    def forward(self, state, action):
+    def forward(self, state, action, wall):
         action = self.action_embedding(action)
-        x = torch.cat([state, action], dim=1)
+        x = torch.cat([state, action, wall], dim=1)
         x = self.fc(x)
         return x
 
