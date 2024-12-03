@@ -73,10 +73,10 @@ class LowEnergyTwoModel(nn.Module):
 
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, training=False):
         super().__init__()
-        self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
+        self.encoder = Encoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
-        self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
-        #self.encoder.cnn = self.target_encoder.cnn # try weight sharing
+        self.target_encoder = TargetEncoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
+        self.wall_encoder = WallEncoder(input_shape=(1, 65, 65), repr_dim=128)
         self.device = device
         self.bs = bs
         self.n_steps = n_steps
@@ -89,11 +89,11 @@ class LowEnergyTwoModel(nn.Module):
     def forward(self, states, actions):
 
         bs, action_length, action_dim = actions.shape # (bs, 16, 2)
-
-        encoded_states = self.encoder(states[:,:1])
+        trajectory = states[:,:,0,:,:].copy()
+        encoded_states = self.encoder(trajectory[:,:1])
         encoded_target_states = None
         if self.training:
-            encoded_target_states = self.target_encoder(states[:, :-1])
+            encoded_target_states = self.target_encoder(trajectory[:, :-1])
 
 
         predicted_states = []
@@ -181,7 +181,7 @@ class Encoder(nn.Module):
     
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
-        x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
+        # x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
         
         B, T, C, H, W = x.size()
         y = x
