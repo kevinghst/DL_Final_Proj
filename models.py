@@ -104,10 +104,12 @@ class LowEnergyTwoModel(nn.Module):
         else:
             # the input states only include the first step in the trajectory
             predicted_state = self.encoder(states)
-            predicted_states = [predicted_state]
+            predicted_states = [predicted_state.squeeze(1)]
             for t in range(actions.size(1)):
                 predicted_state = self.predictor(predicted_state.squeeze(1), actions[:, t])
                 predicted_states.append(predicted_state)
+
+            predicted_states = torch.stack(predicted_states, dim=1)
 
             return predicted_states, None
     
@@ -186,8 +188,6 @@ class Predictor(nn.Module):
         )
     
     def forward(self, state, action):
-        print(f'state {state.size()}')
-        print(f'action {action.size()}')
         x = torch.cat([state, action], dim=1)
         x = self.fc(x)
         return x
