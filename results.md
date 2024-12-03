@@ -64,4 +64,12 @@ Epoch 3, Loss: 0.0001226986
 normal loss: 133.546630859375
 wall loss: 148.311767578125
 
+Trial 7
+12/3 0:15AM
+113e9e98e92f3abdf028d3c66d4bb301420a81e1
+6 epochs
+Epoch 6, Loss: 0.0000569726
+normal loss: 5.15134334564209
+wall loss: 8.343428611755371
+
 
