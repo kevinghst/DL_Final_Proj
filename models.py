@@ -91,8 +91,8 @@ class LowEnergyTwoModel(nn.Module):
         bs, action_length, action_dim = actions.shape # (bs, 16, 2)
 
         encoded_states = self.encoder(states[:,:1])
-        print(states[:, :-1].shape)
-        encoded_target_states = self.target_encoder(states[:, :-1])
+        encoded_target_states = self.target_encoder(states)
+        encoded_target_states = encoded_target_states[:,:-1]
 
 
         predicted_states = []
