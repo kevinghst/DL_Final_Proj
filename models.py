@@ -179,8 +179,14 @@ class Encoder(nn.Module):
         return x + y
 
 class Predictor(nn.Module):
-    def __init__(self, repr_dim=256, action_dim=2):
+    def __init__(self, repr_dim=256, action_dim=32):
         super().__init__()
+
+        self.action_embedding = nn.Sequential(
+            nn.Linear(2, action_dim),
+            nn.ReLU()
+        )
+
         self.fc = nn.Sequential(
             nn.Linear(repr_dim + action_dim, repr_dim * 2),
             nn.ReLU(),
@@ -188,6 +194,7 @@ class Predictor(nn.Module):
         )
     
     def forward(self, state, action):
+        action = self.action_embedding(action)
         x = torch.cat([state, action], dim=1)
         x = self.fc(x)
         return x
