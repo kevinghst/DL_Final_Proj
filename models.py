@@ -92,7 +92,7 @@ class LowEnergyTwoModel(nn.Module):
 
         encoded_states = self.encoder(states[:,:1])
         encoded_target_states = None
-        if not self.training:
+        if self.training:
             encoded_target_states = self.target_encoder(states[:, :-1])
 
 
