@@ -97,13 +97,13 @@ class JEPA_Model(nn.Module):
     def forward(self, states, actions):
         """
         Args:
-            states: [B, T, Ch, H, W]
+            states: [B, 1, Ch, H, W]
             actions: [B, T-1, 2]
 
         Output:
             predictions: [B, T, D]
         """
-        B, T, C, H, W = states.shape
+        B, 1, C, H, W = states.shape
         device = states.device
         # Initialize list to store predicted representations
         pred_encs = []

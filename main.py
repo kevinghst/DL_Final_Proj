@@ -15,7 +15,7 @@ def get_device():
 
 
 def load_data(device):
-    data_path = "/scratch/DL24FA"
+    data_path = "./data/DL24FA"
 
     probe_train_ds = create_wall_dataloader(
         data_path=f"{data_path}/probe_normal/train",
@@ -71,7 +71,8 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
     avg_losses = evaluator.evaluate_all(prober=prober)
 
     for probe_attr, loss in avg_losses.items():
-        #print(f"{probe_attr} loss: {loss}")
+        #continue
+        print(f"{probe_attr} loss: {loss}")
 
 
 if __name__ == "__main__":
