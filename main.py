@@ -68,7 +68,11 @@ def load_model(device='cuda', local=False):
     """Load or initialize the model."""
     # model = MockModel()
     model = LowEnergyTwoModel(device=device, repr_dim=256).to(device)
-    model.load_state_dict(torch.load("best_model.pth", weights_only=True))
+    if local:
+        state_dict = torch.load('best_model.pth', map_location='cpu', weights_only=True)
+        model.load_state_dict(state_dict)
+    else:
+        model.load_state_dict(torch.load("best_model.pth", weights_only=True))
     return model
 
 
