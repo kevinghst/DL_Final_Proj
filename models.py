@@ -178,13 +178,13 @@ class Encoder(nn.Module):
         )
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(fc_input_dim, repr_dim)
-        self.skip_fc = nn.Linear(C * H * W, repr_dim)
+        self.skip_fc = nn.Linear(C * input_shape[1] * input_shape[2], repr_dim)
 
     
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
         x = x[:, :, 0:1, :, :] # copy trajectory channel over wall channel
-
+        
         B, T, C, H, W = x.size()
         y = x
         x = x.contiguous().view(B * T, C, H, W)
@@ -195,7 +195,6 @@ class Encoder(nn.Module):
 
         # skip connection
         y = y.contiguous().view(B * T, -1)  # [B * T, C * H * W]
-        print(y.size())
         y = self.skip_fc(y)
         y = y.view(B, T, -1)  # Reshape back to [B, T, repr_dim]
         
