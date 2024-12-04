@@ -73,10 +73,10 @@ class LowEnergyTwoModel(nn.Module):
 
     def __init__(self, device="cuda", bs=64, n_steps=17, output_dim=256, repr_dim=256, training=False):
         super().__init__()
-        self.encoder = Encoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
+        self.encoder = Encoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
         self.predictor = Predictor(repr_dim=repr_dim, action_dim=2)
-        self.target_encoder = TargetEncoder(input_shape=(2, 65, 65), repr_dim=repr_dim)
-        self.wall_encoder = WallEncoder(input_shape=(2, 65, 65), repr_dim=128)
+        self.target_encoder = TargetEncoder(input_shape=(1, 65, 65), repr_dim=repr_dim)
+        self.wall_encoder = WallEncoder(input_shape=(1, 65, 65), repr_dim=128)
         self.device = device
         self.bs = bs
         self.n_steps = n_steps
@@ -171,19 +171,19 @@ class Encoder(nn.Module):
         fc_input_dim = H * W * 64
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(C, 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
         )
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(fc_input_dim, repr_dim)
-        self.skip_fc = nn.Linear(C * input_shape[1] * input_shape[2], repr_dim)
+        self.skip_fc = nn.Linear(C * H * W, repr_dim)
 
     
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
-        x[:, :, 1, :, :] = x[:, :, 0, :, :] # copy trajectory channel over wall channel
+        x = x[:, :, 0:1, :, :] # copy trajectory channel over wall channel
         
         B, T, C, H, W = x.size()
         y = x
@@ -227,7 +227,7 @@ class TargetEncoder(Encoder):
 
 
 class WallEncoder(nn.Module):
-    def __init__(self, input_shape=(2, 65, 65), repr_dim=128):
+    def __init__(self, input_shape=(1, 65, 65), repr_dim=128):
         super().__init__()
 
         # Calculate linear layer input size
@@ -247,7 +247,7 @@ class WallEncoder(nn.Module):
         self.fc = nn.Linear(fc_input_dim, repr_dim)  # Output size = 128
 
     def forward(self, x):
-        x[:, :, 0, :, :] = x[:, :, 1, :, :] # copy trajectory channel over wall channel
+        x = x[:, :, 1:, :, :] # copy trajectory channel over wall channel
         B, T, C, H, W = x.size()  # Expect input shape (batch_size, 1, 1, 65, 65)
         x = x.contiguous().view(B * T, C, H, W)  # Combine batch and time dimensions
         x = self.cnn(x)  # Apply CNN
