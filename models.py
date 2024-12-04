@@ -184,7 +184,7 @@ class Encoder(nn.Module):
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
         x = x[:, :, 0:1, :, :] # copy trajectory channel over wall channel
-        print(x.size())
+
         B, T, C, H, W = x.size()
         y = x
         x = x.contiguous().view(B * T, C, H, W)
@@ -195,6 +195,7 @@ class Encoder(nn.Module):
 
         # skip connection
         y = y.contiguous().view(B * T, -1)  # [B * T, C * H * W]
+        print(y.size())
         y = self.skip_fc(y)
         y = y.view(B, T, -1)  # Reshape back to [B, T, repr_dim]
         
