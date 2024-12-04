@@ -13,16 +13,15 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
     progress_bar = tqdm(range(num_epochs * len(train_loader)))
     for epoch in tqdm(range(num_epochs)):
 
-        for epoch in tqdm(range(num_epochs)):
-            if epoch == 2:  # Freeze target_encoder after the 2nd epoch
-                for param in model.target_encoder.parameters():
-                    param.requires_grad = False
-                
-                # Update the optimizer to exclude the frozen parameters
-                optimizer = optim.Adam(
-                    filter(lambda p: p.requires_grad, model.parameters()), 
-                    lr=learning_rate
-                )
+        if epoch == 2:  # Freeze target_encoder after the 2nd epoch
+            for param in model.target_encoder.parameters():
+                param.requires_grad = False
+            
+            # Update the optimizer to exclude the frozen parameters
+            optimizer = optim.Adam(
+                filter(lambda p: p.requires_grad, model.parameters()), 
+                lr=learning_rate
+            )
     
         model.train()
         epoch_loss = 0.0
