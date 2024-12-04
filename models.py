@@ -89,13 +89,13 @@ class LowEnergyTwoModel(nn.Module):
     def forward(self, states, actions):
 
         bs, action_length, action_dim = actions.shape # (bs, 16, 2)
-        # trajectory = states[:,:,0:1,:,:].clone()
-        # wall = states[:,:,1:,:,:].clone()
-        encoded_states = self.encoder(states[:,:1])
-        encoded_wall = self.wall_encoder(states[:, :1])
+        trajectory = states[:,:,0:1,:,:].clone()
+        wall = states[:,:,1:,:,:].clone()
+        encoded_states = self.encoder(trajectory[:,:1]) # only needs to encode the initial state
+        encoded_wall = self.wall_encoder(wall[:, :1]) # only needs to encode the initial state
         encoded_target_states = None
         if self.training:
-            encoded_target_states = self.target_encoder(states[:, :-1])
+            encoded_target_states = self.target_encoder(trajectory[:, :-1])
 
 
         predicted_states = []
@@ -183,7 +183,7 @@ class Encoder(nn.Module):
     
     def forward(self, x):
         #x[:, :, 0, :, :] *= 1000 # the numbers are really small
-        x = x[:, :, 0:1, :, :] # copy trajectory channel over wall channel
+        # x = x[:, :, 0:1, :, :] # copy trajectory channel over wall channel
         
         B, T, C, H, W = x.size()
         y = x
@@ -247,7 +247,7 @@ class WallEncoder(nn.Module):
         self.fc = nn.Linear(fc_input_dim, repr_dim)  # Output size = 128
 
     def forward(self, x):
-        x = x[:, :, 1:, :, :] # copy trajectory channel over wall channel
+        # x = x[:, :, 1:, :, :] # copy trajectory channel over wall channel
         B, T, C, H, W = x.size()  # Expect input shape (batch_size, 1, 1, 65, 65)
         x = x.contiguous().view(B * T, C, H, W)  # Combine batch and time dimensions
         x = self.cnn(x)  # Apply CNN
