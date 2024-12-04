@@ -9,8 +9,11 @@ conda activate my_env
 
 cd /scratch/zg915/DL_Final_Proj
 
-normal loss: 224.30386352539062
-wall loss: 166.3461456298828
+normal loss: 13.233551025390625
+wall loss: 15.252252578735352
+
+normal loss: 135.9244384765625
+wall loss: 45.98346710205078
 
 normal loss: 266.0563659667969
 wall loss: 191.48345947265625
