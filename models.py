@@ -106,34 +106,6 @@ class LowEnergyTwoModel(nn.Module):
         predicted_states = torch.stack(predicted_states, dim=1)  # (17, bs, 256)
 
         return predicted_states, encoded_target_states
-
-        if self.training:
-            # the input states include each step in the trajectory
-            target_states = self.target_encoder(states[:, 1:])  # skip first observation
-            states = self.encoder(states[:, :-1])  # skip last observation
-
-            predicted_states = [states[:, 0].clone()]
-            for t in range(actions.size(1)):
-                predicted_state = self.predictor(states[:, t], actions[:, t])
-                predicted_states.append(predicted_state)
-                if t + 1 < states.size(1):
-                    states[:, t + 1] = predicted_state  # teacher forcing
-
-            predicted_states = torch.stack(predicted_states, dim=1)
-
-            return predicted_states, target_states
-
-        else:
-            # the input states only include the first step in the trajectory
-            predicted_state = self.encoder(states)
-            predicted_states = [predicted_state.squeeze(1)]
-            for t in range(actions.size(1)):
-                predicted_state = self.predictor(predicted_state.squeeze(1), actions[:, t])
-                predicted_states.append(predicted_state)
-
-            predicted_states = torch.stack(predicted_states, dim=1)
-
-            return predicted_states, None
     
 
 

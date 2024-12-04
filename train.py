@@ -12,11 +12,21 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     progress_bar = tqdm(range(num_epochs * len(train_loader)))
     for epoch in tqdm(range(num_epochs)):
+
+        for epoch in tqdm(range(num_epochs)):
+            if epoch == 2:  # Freeze target_encoder after the 2nd epoch
+                for param in model.target_encoder.parameters():
+                    param.requires_grad = False
+                
+                # Update the optimizer to exclude the frozen parameters
+                optimizer = optim.Adam(
+                    filter(lambda p: p.requires_grad, model.parameters()), 
+                    lr=learning_rate
+                )
+    
         model.train()
         epoch_loss = 0.0
 
-        count = 0
-        # gradient_norms = {"encoder": [], "target_encoder": [], "predictor": []}
 
         for batch in train_loader:
             states = batch.states.to(device)  # [B, T+1, Ch, H, W]
@@ -27,49 +37,11 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             optimizer.zero_grad()
             loss.backward()
 
-            # collect_gradient_norms = {"encoder": 0, "target_encoder": 0, "predictor": 0}
-            # for name, param in model.named_parameters():
-            #     if param.grad is not None:
-            #         grad_norm = param.grad.norm().item()
-            #         if "encoder" in name and "target_encoder" not in name:  # Encoder
-            #             collect_gradient_norms["encoder"] += grad_norm
-            #         elif "target_encoder" in name:  # Target Encoder
-            #             collect_gradient_norms["target_encoder"] += grad_norm
-            #         elif "predictor" in name:  # Predictor
-            #             collect_gradient_norms["predictor"] += grad_norm
-            # gradient_norms["encoder"].append(collect_gradient_norms["encoder"])
-            # gradient_norms["target_encoder"].append(collect_gradient_norms["target_encoder"])
-            # gradient_norms["predictor"].append(collect_gradient_norms["predictor"])
 
             optimizer.step()
             epoch_loss += loss.item()
             progress_bar.update(1)
 
-            # print(f'{count},',end="")
-            # count = count + 1
-            # if count%200 == 0:
-            #     print(f"last batch loss: {loss.item()}")
-            #     predicted_norms = torch.norm(predicted_states, dim=-1).view(-1).detach().cpu().numpy()
-            #     target_norms = torch.norm(target_states, dim=-1).view(-1).detach().cpu().numpy()
-            #     plt.figure(figsize=(8, 6))
-            #     plt.hist(predicted_norms, bins=50, alpha=0.5, label="Predicted States")
-            #     plt.hist(target_norms, bins=50, alpha=0.5, label="Target States")
-            #     plt.legend()
-            #     plt.title("Norm Distributions of Predicted and Target States")
-            #     plt.xlabel("Norm")
-            #     plt.ylabel("Frequency")
-            #     plt.show()
-
-            #     plt.figure(figsize=(10, 6))  # Optional: Adjust the figure size
-            #     for part, norms in gradient_norms.items():
-            #         plt.plot(norms, label=part) 
-            #     plt.title("Gradient Norms Over Training")
-            #     plt.xlabel("Iteration")
-            #     plt.ylabel("Mean Gradient Norm")
-            #     plt.legend()
-            #     plt.show()
-            # if test_mode and count == 10:
-            #     return predicted_states, target_states
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
     return predicted_states, target_states
