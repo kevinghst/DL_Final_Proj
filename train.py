@@ -37,7 +37,7 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
     change_points = [0, 1, 2, 3, 4]  # Epochs at which sequence length changes
     seq_len_schedule = {epoch: seq_len for epoch, seq_len in zip(change_points, sequence_lengths)}
 
-    for epoch in tqdm(range(num_epochs)):
+    for epoch in tqdm(range(num_epochs), desc='Epochs'):
         """freeze predictor"""
         # if epoch == 2:  # Freeze target_encoder after the 2nd epoch
         #     for param in model.target_encoder.parameters():
@@ -60,30 +60,29 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
         model.train()
         epoch_loss = 0.0
 
+        with tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs}', leave=False) as batch_bar:
+            for batch in train_loader:
+                states = batch.states.to(device)  # [B, T+1, Ch, H, W]
+                actions = batch.actions.to(device)  # [B, T, action_dim]
 
-        for batch in train_loader:
-            states = batch.states.to(device)  # [B, T+1, Ch, H, W]
-            actions = batch.actions.to(device)  # [B, T, action_dim]
+                # Generate subsequences
+                states_subseq = get_subsequences(states, seq_len_states)      # [B * num_slices, seq_len_states, 2, 65, 65]
+                actions_subseq = get_subsequences(actions, seq_len_actions)    # [B * num_slices, seq_len_actions, 2, 65, 65]
 
-            # Generate subsequences
-            states_subseq = get_subsequences(states, seq_len_states)      # [B * num_slices, seq_len_states, 2, 65, 65]
-            actions_subseq = get_subsequences(actions, seq_len_actions)    # [B * num_slices, seq_len_actions, 2, 65, 65]
+                batch_size = states_subseq.shape[0]
+                mini_batch_size = 64  # Adjust based on your GPU memory
 
-            batch_size = states_subseq.shape[0]
-            mini_batch_size = 64  # Adjust based on your GPU memory
+                for i in range(0, batch_size, mini_batch_size):
+                    states_mini = states_subseq[i:i+mini_batch_size]
+                    actions_mini = actions_subseq[i:i+mini_batch_size]
 
-            for i in range(0, batch_size, mini_batch_size):
-                states_mini = states_subseq[i:i+mini_batch_size]
-                actions_mini = actions_subseq[i:i+mini_batch_size]
-
-                print(states_mini.shape, actions_mini.shape)
-                predicted_states, target_states = model(states_mini, actions_mini)
-                loss = model.loss(predicted_states, target_states)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                epoch_loss += loss.item()
-                progress_bar.update(1)
+                    predicted_states, target_states = model(states_mini, actions_mini)
+                    loss = model.loss(predicted_states, target_states)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    epoch_loss += loss.item()
+                    # progress_bar.update(1)
 
 
         print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.10f}")
