@@ -70,7 +70,7 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
             actions_subseq = get_subsequences(actions, seq_len_actions)    # [B * num_slices, seq_len_actions, 2, 65, 65]
 
             batch_size = states_subseq.shape[0]
-            mini_batch_size = 1024  # Adjust based on your GPU memory
+            mini_batch_size = 64  # Adjust based on your GPU memory
 
             for i in range(0, batch_size, mini_batch_size):
                 states_mini = states_subseq[i:i+mini_batch_size]
