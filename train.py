@@ -30,11 +30,11 @@ def train_low_energy_two_model(model, train_loader, num_epochs=50, learning_rate
     progress_bar = tqdm(range(num_epochs * len(train_loader)))
 
     max_seq_len_states = 17  # Maximum sequence length for states
-    sequence_lengths = [2, 5, 9, 17]  # Corresponding to state lengths for action lengths 1,2,4,8,16
+    sequence_lengths = [3, 9, 17]  # Corresponding to state lengths for action lengths 1,2,4,8,16
 
     # Epochs at which to change the sequence length
     # For example, if num_epochs is 50, we can change the length every 10 epochs
-    change_points = [0, 2, 4, 6]  # Epochs at which sequence length changes
+    change_points = [0, 3, 6]  # Epochs at which sequence length changes
     seq_len_schedule = {epoch: seq_len for epoch, seq_len in zip(change_points, sequence_lengths)}
 
     for epoch in tqdm(range(num_epochs), desc='Epochs'):
