@@ -182,14 +182,16 @@ class Predictor(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(repr_dim + action_dim + wall_dim, repr_dim * 2),
+            # nn.Linear(repr_dim + action_dim + wall_dim, repr_dim * 2),
+            nn.Linear(repr_dim + action_dim, repr_dim * 2),
             nn.ReLU(),
             nn.Linear(repr_dim * 2, repr_dim)
         )
     
     def forward(self, state, action, wall):
         action = self.action_embedding(action)
-        x = torch.cat([state, action, wall.squeeze(1)], dim=1)
+        # x = torch.cat([state, action, wall.squeeze(1)], dim=1)
+        x = torch.cat([state, action], dim=1)
         x = self.fc(x)
         return x
 
