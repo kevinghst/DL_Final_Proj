@@ -95,7 +95,7 @@ class LowEnergyTwoModel(nn.Module):
         encoded_wall = self.wall_encoder(wall[:, :1]) # only needs to encode the initial state
         encoded_target_states = None
         if self.training:
-            encoded_target_states = self.target_encoder(trajectory[:, :-1])
+            encoded_target_states = self.encoder(trajectory[:, :-1])
 
 
         predicted_states = []
