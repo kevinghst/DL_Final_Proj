@@ -105,7 +105,7 @@ class LowEnergyTwoModel(nn.Module):
             predicted_states.append(prediction)
         predicted_states = torch.stack(predicted_states, dim=1)  # (17, bs, 256)
 
-        return predicted_states, encoded_target_states
+        return predicted_states, encoded_target_states, encoded_wall
     
 
 
@@ -118,7 +118,7 @@ class LowEnergyTwoModel(nn.Module):
         negative_pairs = similarity.mean() - positive_pairs
         return -positive_pairs + negative_pairs
 
-    def loss(self, predicted_states, target_states):
+    def loss(self, predicted_states, target_states, encoded_wall):
         predicted_states = predicted_states[:, 1:]
         mse_loss = F.mse_loss(predicted_states, target_states)
         variance = target_states.var(dim=0).mean()
@@ -129,7 +129,10 @@ class LowEnergyTwoModel(nn.Module):
         #cov = torch.cov(target_states.T)
         cov_loss = (cov.fill_diagonal_(0).pow(2).sum() / cov.size(0))
         #contrastive = self.contrastive_loss(predicted_states, target_states)
-        return mse_loss + var_loss #+ cov_loss #+ .1*contrastive
+
+        # wall loss
+        wall_var_loss = F.relu(1e-2 - encoded_wall.var(dim=0).mean())
+        return mse_loss + var_loss + wall_var_loss#+ cov_loss #+ .1*contrastive
 
 
 class Encoder(nn.Module):
@@ -182,16 +185,16 @@ class Predictor(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            # nn.Linear(repr_dim + action_dim + wall_dim, repr_dim * 2),
-            nn.Linear(repr_dim + action_dim, repr_dim * 2),
+            nn.Linear(repr_dim + action_dim + wall_dim, repr_dim * 2),
+            # nn.Linear(repr_dim + action_dim, repr_dim * 2),
             nn.ReLU(),
             nn.Linear(repr_dim * 2, repr_dim)
         )
     
     def forward(self, state, action, wall):
         action = self.action_embedding(action)
-        # x = torch.cat([state, action, wall.squeeze(1)], dim=1)
-        x = torch.cat([state, action], dim=1)
+        x = torch.cat([state, action, wall.squeeze(1)], dim=1)
+        # x = torch.cat([state, action], dim=1)
         x = self.fc(x)
         return x
 
