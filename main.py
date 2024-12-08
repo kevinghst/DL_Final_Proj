@@ -125,35 +125,33 @@ class FlippedDataset:
         return len(self.dataset)
 
 def evaluate_model_with_flips(device, model, probe_train_ds, probe_val_ds):
-    """
-    1. 评估原始数据
-    2. 评估水平翻转后的数据
-    """
+ 
     print("\nEvaluating on original data:")
-    original_losses = evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    evaluator = ProbingEvaluator(
+        device=device,
+        model=model,
+        probe_train_ds=probe_train_ds,
+        probe_val_ds=probe_val_ds,
+        quick_debug=False,
+    )
+    prober = evaluator.train_pred_prober()
+    original_losses = evaluator.evaluate_all(prober=prober, device=device)
     
     print("\nEvaluating on horizontally flipped data:")
-    # flip dataset
     flipped_probe_train = FlippedDataset(probe_train_ds)
     flipped_probe_val = {
         k: FlippedDataset(v) for k, v in probe_val_ds.items()
     }
     
-    # flip loss
-    flipped_losses = evaluate_model(
-        device, 
-        model, 
-        flipped_probe_train, 
-        flipped_probe_val
+    flipped_evaluator = ProbingEvaluator(
+        device=device,
+        model=model,
+        probe_train_ds=flipped_probe_train,
+        probe_val_ds=flipped_probe_val,
+        quick_debug=False,
     )
-    
-    print("\nEvaluation Summary:")
-    print("\nOriginal Data Losses:")
-    for k, v in original_losses.items():
-        print(f"  {k}: {v}")
-    print("\nFlipped Data Losses:")
-    for k, v in flipped_losses.items():
-        print(f"  {k}: {v}")
+    flipped_prober = flipped_evaluator.train_pred_prober()
+    flipped_losses = flipped_evaluator.evaluate_all(prober=flipped_prober, device=device)
     
     return original_losses, flipped_losses
 
@@ -211,15 +209,20 @@ if __name__ == "__main__":
         probe_train_ds, probe_val_ds = load_data(device, local=local)
         model = load_model(device=device, local=local)
         
-        # Evaluate on both original and flipped data
         original_losses, flipped_losses = evaluate_model_with_flips(
             device, model, probe_train_ds, probe_val_ds
         )
         
-        print("\nSummary of evaluations:")
-        print("\nOriginal Data Losses:")
+        print("\n=== Complete Evaluation Results ===")
+        print("\nOriginal Data:")
         for k, v in original_losses.items():
             print(f"  {k}: {v}")
-        print("\nFlipped Data Losses:")
+        
+        print("\nFlipped Data:")
         for k, v in flipped_losses.items():
             print(f"  {k}: {v}")
+        
+        print("\nDifference Analysis (Flipped - Original):")
+        for k in original_losses.keys():
+            diff = flipped_losses[k] - original_losses[k]
+            print(f"  {k}: {diff:+.6f}")
