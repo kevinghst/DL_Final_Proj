@@ -92,6 +92,52 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
     for probe_attr, loss in avg_losses.items():
         print(f"{probe_attr} loss: {loss}")
 
+#flip
+def flip_batch(states, actions):
+    """
+    Flip states and corresponding actions horizontally.
+    
+    Args:
+        states: Tensor of shape [B, T, C, H, W]
+        actions: Tensor of shape [B, T-1, 2] 
+    Returns:
+        Flipped states and actions
+    """
+    # Flip states horizontally
+    flipped_states = torch.flip(states, dims=[-1])
+    
+    # Flip x-direction of actions (first component)
+    flipped_actions = actions.clone()
+    flipped_actions[..., 0] = -flipped_actions[..., 0]
+    
+    return flipped_states, flipped_actions
+
+def evaluate_model_with_flips(device, model, probe_train_ds, probe_val_ds):
+    """First evaluate on original data, then on flipped data"""
+    print("\nEvaluating on original data:")
+    original_losses = evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    
+    print("\nEvaluating on flipped data:")
+    # Get a batch of data
+    for batch in probe_train_ds:
+        flipped_states, flipped_actions = flip_batch(batch.states, batch.actions)
+        batch.states = flipped_states
+        batch.actions = flipped_actions
+        break
+    
+    for ds_name, val_ds in probe_val_ds.items():
+        for batch in val_ds:
+            flipped_states, flipped_actions = flip_batch(batch.states, batch.actions)
+            batch.states = flipped_states
+            batch.actions = flipped_actions
+            break
+    
+    flipped_losses = evaluate_model(device, model, probe_train_ds, probe_val_ds)
+    
+    return original_losses, flipped_losses
+
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -133,10 +179,22 @@ if __name__ == "__main__":
         torch.save(model.state_dict(), "best_model.pth")
 
     else: 
-        # evaluate the model
+        '''# evaluate the model
         print('Evaluating best_model.pth')
         probe_train_ds, probe_val_ds = load_data(device, local=local)
         model = load_model(device=device, local=local)
-        evaluate_model(device, model, probe_train_ds, probe_val_ds)
+        evaluate_model(device, model, probe_train_ds, probe_val_ds)'''
 
 
+        print('Evaluating best_model.pth')
+        probe_train_ds, probe_val_ds = load_data(device, local=local)
+        model = load_model(device=device, local=local)
+        
+        # Evaluate on both original and flipped data
+        original_losses, flipped_losses = evaluate_model_with_flips(
+            device, model, probe_train_ds, probe_val_ds
+        )
+        
+        print("\nSummary of evaluations:")
+        print("Original Data Losses:", original_losses)
+        print("Flipped Data Losses:", flipped_losses)
