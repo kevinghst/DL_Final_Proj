@@ -72,7 +72,7 @@ def load_model(device='cuda', local=False):
         state_dict = torch.load('best_model.pth', map_location='cpu', weights_only=True)
         model.load_state_dict(state_dict)
     else:
-        model.load_state_dict(torch.load("best_model.pth", weights_only=True))
+        model.load_state_dict(torch.load("best_model.pth.trial16", weights_only=True))
     return model
 
 
