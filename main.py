@@ -97,11 +97,22 @@ def evaluate_model(device, model, probe_train_ds, probe_val_ds):
 from dataclasses import dataclass
 from copy import deepcopy
 
-@dataclass
-class BatchData:
-    """Mutable container for batch data"""
-    states: torch.Tensor
-    actions: torch.Tensor
+class FlippedDataset:
+    """Wrapper class that provides flipped versions of the original dataset"""
+    def __init__(self, original_dataset):
+        self.dataset = original_dataset
+
+    def __iter__(self):
+        for batch in self.dataset:
+            # Get flipped versions of the data
+            flipped_states, flipped_actions = flip_batch(batch.states, batch.actions)
+            
+            # Create new batch with same type as original
+            flipped_batch = type(batch)(states=flipped_states, actions=flipped_actions)
+            yield flipped_batch
+            
+    def __len__(self):
+        return len(self.dataset)
 
 def flip_batch(states, actions):
     """
@@ -122,32 +133,16 @@ def flip_batch(states, actions):
     
     return flipped_states, flipped_actions
 
-def create_flipped_dataset(dataset):
-    """Create a new dataset with flipped data"""
-    flipped_dataset = deepcopy(dataset)
-    
-    # Get the first batch to determine the data structure
-    for batch in dataset:
-        states = batch.states
-        actions = batch.actions
-        flipped_states, flipped_actions = flip_batch(states, actions)
-        
-        # Create new batch with flipped data
-        new_batch = BatchData(states=flipped_states, actions=flipped_actions)
-        break
-        
-    return new_batch
-
 def evaluate_model_with_flips(device, model, probe_train_ds, probe_val_ds):
     """First evaluate on original data, then on flipped data"""
     print("\nEvaluating on original data:")
     original_losses = evaluate_model(device, model, probe_train_ds, probe_val_ds)
     
     print("\nEvaluating on flipped data:")
-    # Create flipped versions of datasets
-    flipped_probe_train = create_flipped_dataset(probe_train_ds)
+    # Create flipped versions of datasets while maintaining iterator behavior
+    flipped_probe_train = FlippedDataset(probe_train_ds)
     flipped_probe_val = {
-        k: create_flipped_dataset(v) for k, v in probe_val_ds.items()
+        k: FlippedDataset(v) for k, v in probe_val_ds.items()
     }
     
     flipped_losses = evaluate_model(
@@ -219,5 +214,9 @@ if __name__ == "__main__":
         )
         
         print("\nSummary of evaluations:")
-        print("Original Data Losses:", original_losses)
-        print("Flipped Data Losses:", flipped_losses)
+        print("\nOriginal Data Losses:")
+        for k, v in original_losses.items():
+            print(f"  {k}: {v}")
+        print("\nFlipped Data Losses:")
+        for k, v in flipped_losses.items():
+            print(f"  {k}: {v}")
