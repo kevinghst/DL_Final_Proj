@@ -7,7 +7,7 @@ from models import LowEnergyTwoModel
 import glob
 import torch.optim as optim
 import argparse
-#test
+
 
 def get_device(local=False):
     """Check for GPU availability."""
