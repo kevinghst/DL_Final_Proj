@@ -98,59 +98,62 @@ from dataclasses import dataclass
 from copy import deepcopy
 
 class FlippedDataset:
-    """Wrapper class that provides flipped versions of the original dataset"""
+    """Wrapper class that creates a horizontally flipped version of the original dataset"""
     def __init__(self, original_dataset):
         self.dataset = original_dataset
+        self.batch_size = original_dataset.batch_size
 
     def __iter__(self):
         for batch in self.dataset:
-            # Get flipped versions of the data
-            flipped_states, flipped_actions = flip_batch(batch.states, batch.actions)
+            # Flip everything horizontally
+            flipped_states = torch.flip(batch.states, dims=[-1])  
+            flipped_actions = batch.actions.clone()
+            flipped_actions[..., 0] = -flipped_actions[..., 0]  # x = -x
             
-            # Create new batch with same type as original
-            flipped_batch = type(batch)(states=flipped_states, actions=flipped_actions)
+            # flip location
+            flipped_locations = batch.locations.clone()
+            flipped_locations[..., 0] = 64 - flipped_locations[..., 0]  
+            
+            flipped_batch = type(batch)(
+                states=flipped_states,
+                actions=flipped_actions,
+                locations=flipped_locations
+            )
             yield flipped_batch
-            
+    
     def __len__(self):
         return len(self.dataset)
 
-def flip_batch(states, actions):
-    """
-    Flip states and corresponding actions horizontally.
-    
-    Args:
-        states: Tensor of shape [B, T, C, H, W]
-        actions: Tensor of shape [B, T-1, 2] 
-    Returns:
-        Flipped states and actions
-    """
-    # Flip states horizontally
-    flipped_states = torch.flip(states, dims=[-1])
-    
-    # Flip x-direction of actions (first component)
-    flipped_actions = actions.clone()
-    flipped_actions[..., 0] = -flipped_actions[..., 0]
-    
-    return flipped_states, flipped_actions
-
 def evaluate_model_with_flips(device, model, probe_train_ds, probe_val_ds):
-    """First evaluate on original data, then on flipped data"""
+    """
+    1. 评估原始数据
+    2. 评估水平翻转后的数据
+    """
     print("\nEvaluating on original data:")
     original_losses = evaluate_model(device, model, probe_train_ds, probe_val_ds)
     
-    print("\nEvaluating on flipped data:")
-    # Create flipped versions of datasets while maintaining iterator behavior
+    print("\nEvaluating on horizontally flipped data:")
+    # flip dataset
     flipped_probe_train = FlippedDataset(probe_train_ds)
     flipped_probe_val = {
         k: FlippedDataset(v) for k, v in probe_val_ds.items()
     }
     
+    # flip loss
     flipped_losses = evaluate_model(
         device, 
         model, 
         flipped_probe_train, 
         flipped_probe_val
     )
+    
+    print("\nEvaluation Summary:")
+    print("\nOriginal Data Losses:")
+    for k, v in original_losses.items():
+        print(f"  {k}: {v}")
+    print("\nFlipped Data Losses:")
+    for k, v in flipped_losses.items():
+        print(f"  {k}: {v}")
     
     return original_losses, flipped_losses
 
